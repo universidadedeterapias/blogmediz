@@ -88,11 +88,14 @@ Use a string gerada como `API_BEARER_TOKEN` no `.env` e no header do n8n: `Autho
 
 ## Deploy na Vercel
 
-1. Conecte o repositório à Vercel.
-2. Em *Settings → Environment Variables* defina:
-   - `DATABASE_URL`: connection string do Supabase (use **Transaction mode / pooler**, porta 6543).
-   - `API_BEARER_TOKEN`: mesmo token usado no n8n.
-3. Deploy: a Vercel usa o `vercel.json` (rewrites para `/api`) e compila o conteúdo da pasta `api/`.
+1. Conecte o repositório à Vercel (Import Git Repository).
+2. **Antes de fazer o primeiro deploy**, em **Settings → Environment Variables** adicione:
+   - **`DATABASE_URL`**: URL do Supabase em **Transaction mode (pooler)**, porta **6543** (a mesma do seu `.env` para o app).
+   - **`API_BEARER_TOKEN`**: o mesmo valor do seu `.env` (token que o n8n usa no header).
+   Marque **Production** (e Preview se quiser).
+3. Faça o deploy (Deploy ou Redeploy). O build roda `prisma generate`; a função usa Node 20.
+
+Se aparecer "No Deployment" ou erro 500, confira os **Build Logs** e **Function Logs** no deploy e verifique se as duas variáveis estão preenchidas.
 
 ## Scripts
 
