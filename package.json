@@ -9,7 +9,7 @@
     "build": "prisma generate",
     "postinstall": "prisma generate",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "check:deploy": "npm run build"
+    "check:deploy": "npm run build && npx tsc --noEmit && echo. && echo [OK] Prisma && echo [OK] TypeScript && echo Pronto para deploy."
   },
   "keywords": [],
   "author": "",

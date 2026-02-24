@@ -38,9 +38,9 @@ articlesRouter.post("/", bearerAuth, async (req: Request, res: Response): Promis
       },
       update: {
         title,
-        categoryTag: categoryTag ?? undefined,
-        author: author ?? undefined,
-        publishedAt: publishedAtDate ?? undefined,
+        ...(categoryTag !== undefined && { categoryTag: categoryTag ?? null }),
+        ...(author !== undefined && { author: author ?? null }),
+        ...(publishedAtDate !== undefined && { publishedAt: publishedAtDate ?? null }),
         content: content as object,
       },
     });
@@ -54,7 +54,8 @@ articlesRouter.post("/", bearerAuth, async (req: Request, res: Response): Promis
 
 /** GET /api/articles/:locale/:slug — retorna um artigo (público). */
 articlesRouter.get("/:locale/:slug", async (req: Request, res: Response): Promise<void> => {
-  const { locale, slug } = req.params;
+  const locale = Array.isArray(req.params.locale) ? req.params.locale[0] : req.params.locale;
+  const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
   if (!locale || !slug || !isLocale(locale)) {
     res.status(400).json({ error: "Invalid locale or slug" });
     return;
@@ -77,7 +78,7 @@ articlesRouter.get("/:locale/:slug", async (req: Request, res: Response): Promis
 
 /** GET /api/articles/:locale — lista artigos do locale (público). */
 articlesRouter.get("/:locale", async (req: Request, res: Response): Promise<void> => {
-  const { locale } = req.params;
+  const locale = Array.isArray(req.params.locale) ? req.params.locale[0] : req.params.locale;
   if (!locale || !isLocale(locale)) {
     res.status(400).json({ error: "Invalid locale" });
     return;
