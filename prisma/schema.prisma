@@ -1,0 +1,32 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Locale {
+  pt
+  es
+  en
+}
+
+model Article {
+  id           String    @id @default(cuid())
+  locale       Locale
+  slug         String
+  title        String
+  categoryTag  String?
+  author       String?
+  publishedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  content      Json
+
+  @@unique([locale, slug])
+}
