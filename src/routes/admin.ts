@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { getRequestId } from "../lib/webhook-session.js";
 import { Router } from "express";
 import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
@@ -129,11 +130,13 @@ adminRouter.post("/publish", async (req: Request, res: Response): Promise<void> 
     return;
   }
 
+  const payload = { ...body, sessionId: getRequestId() };
+
   try {
     const forward = await fetch(env.articlePublishWebhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify(payload),
     });
 
     const text = await forward.text();

@@ -30,3 +30,24 @@ model Article {
 
   @@unique([locale, slug])
 }
+
+model AlineLead {
+  id          String   @id @default(cuid())
+  email       String
+  name        String?
+  messageCount Int     @default(0)
+  summary     String?
+  createdAt   DateTime @default(now())
+
+  @@index([email])
+}
+
+model AlineSession {
+  id           String   @id @default(cuid())
+  sessionId   String   @unique
+  messageCount Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([sessionId])
+}

@@ -319,18 +319,18 @@
           if (sb) sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Nenhum artigo cadastrado ainda.</li>";
           return;
         }
-        // limitar sidebar a 5
-        var top5 = list.slice(0, 5);
+        var top3 = list.slice(0, 3);
+        var top10 = list.slice(0, 10);
         if (wrap) {
           var html = "<h2 style='font-family: Fraunces, serif; font-size: 1.25rem; margin-bottom: 12px; color: var(--dark);'>Últimos artigos</h2><ul class='latest-articles-list' style='list-style:none;padding:0;margin:0;'>";
-          list.forEach(function (a) {
+          top3.forEach(function (a) {
             html += "<li style='margin-bottom: 8px;'><a href=\"/" + locale + "/" + encodeURIComponent(a.slug) + "\" style='color: var(--terra); text-decoration: none;'>" + escapeHtml(a.title) + "</a></li>";
           });
           html += "</ul>";
           wrap.innerHTML = html;
         }
         if (sb) {
-          sb.innerHTML = top5.map(function (a) {
+          sb.innerHTML = top10.map(function (a) {
             return "<li><a href=\"/" + locale + "/" + encodeURIComponent(a.slug) + "\">" + escapeHtml(a.title) + "</a></li>";
           }).join("");
         }

@@ -80,6 +80,8 @@ O n8n costuma preencher `Content-Type` automaticamente quando você escolhe "JSO
 
 **Seção "Últimos artigos":** Atualiza automaticamente quando um novo artigo entra — o frontend busca a lista na API a cada carregamento.
 
+**sessionId nos webhooks:** Todos os webhooks chamados pelo blog (Aline, newsletter, publicação de artigo) incluem o campo `sessionId` no payload. Para Aline e newsletter, é o ID da sessão do usuário (cookie `aline_sid`). Para publicação de artigo (admin), é um ID único por requisição (`req-{timestamp}-{random}`). Use no n8n para correlacionar eventos.
+
 ---
 
 ## O que cada campo do body atualiza no blog
@@ -318,7 +320,7 @@ O email cadastrado no blog é enviado para um webhook (ex.: n8n). Configure a UR
 **Exemplo:**  
 `POST /api/newsletter` com body `{ "email": "usuario@exemplo.com" }`.
 
-O backend encaminha o mesmo body (`{ "email": "..." }`) em POST para a URL configurada em `NEWSLETTER_WEBHOOK_URL`. Exemplo no `.env`:
+O backend encaminha `{ "email": "...", "sessionId": "..." }` em POST para a URL configurada em `NEWSLETTER_WEBHOOK_URL`. O `sessionId` é obtido do cookie do usuário (ou gerado) para correlacionar requisições no n8n. Exemplo no `.env`:
 
 ```env
 NEWSLETTER_WEBHOOK_URL=https://mediz-n8n.gjhi7d.easypanel.host/webhook/6dbb678d-e842-4b06-a290-e58b850936d5
@@ -333,7 +335,41 @@ NEWSLETTER_WEBHOOK_URL=https://mediz-n8n.gjhi7d.easypanel.host/webhook/6dbb678d-
 
 ---
 
-### 5. Painel admin (vídeo, mapa mental, podcast)
+### 5. Chat da Aline — salvar lead (após limite de 3 buscas)
+
+Quando o usuário atinge o limite de 3 buscas na Aline, o fluxo pode pedir o e-mail e salvar o cliente no banco. O **n8n** (ou o frontend) chama este endpoint para gravar o lead.
+
+| Item    | Valor |
+|--------|--------|
+| **Método** | `POST` |
+| **Endpoint completo (produção)** | `https://seu-projeto.vercel.app/api/aline-lead` |
+| **Endpoint completo (local)** | `http://localhost:3000/api/aline-lead` |
+| **Autenticação** | Não |
+| **Content-Type** | `application/json` |
+
+**Body (JSON):**
+
+| Campo | Tipo | Obrigatório |
+|-------|------|-------------|
+| `email` | string | Sim (email válido) |
+| `name` | string | Não |
+| `messageCount` | number | Não (padrão 3) |
+| `summary` | string | Não (resumo da conversa) |
+
+**Exemplo:**  
+`POST /api/aline-lead` com body `{ "email": "cliente@exemplo.com", "name": "Maria", "messageCount": 3, "summary": "Buscou sobre ansiedade e sono" }`.
+
+**Integração com n8n:** quando a Aline atingir o limite de 3 buscas, o workflow pode pedir o e-mail ao usuário. Ao receber a resposta com o e-mail, adicione um nó **HTTP Request** que chama `POST https://seu-projeto.vercel.app/api/aline-lead` com body `{ "email": "{{ $json.email }}", "name": "{{ $json.name }}", "messageCount": 3 }` (ajuste conforme os campos retornados pelo nó anterior).
+
+**Respostas:**
+
+- **201 Created** — Lead salvo no banco.
+- **400 Bad Request** — Email ausente ou inválido.
+- **500 Internal Server Error** — Erro ao gravar no banco.
+
+---
+
+### 6. Painel admin (vídeo, mapa mental, podcast)
 
 Acesso único por senha (`ADMIN_SECRET`). Use a página **/admin** no navegador: escolha o artigo e preencha os links de vídeo (embed + miniatura), mapa mental e podcast. As requisições abaixo usam **Bearer** com o valor de `ADMIN_SECRET`.
 
@@ -377,7 +413,9 @@ SUPABASE_SERVICE_KEY=sua-chave-service-role
 | Ler artigo | GET | `https://seu-projeto.vercel.app/api/articles/:locale/:slug` | `http://localhost:3000/api/articles/:locale/:slug` |
 | Listar artigos | GET | `https://seu-projeto.vercel.app/api/articles/:locale?limit=20&offset=0` | `http://localhost:3000/api/articles/:locale?limit=20&offset=0` |
 | Cadastro de email (newsletter) | POST | `https://seu-projeto.vercel.app/api/newsletter` | `http://localhost:3000/api/newsletter` |
+| Salvar lead da Aline (após 3 buscas) | POST | `https://seu-projeto.vercel.app/api/aline-lead` | `http://localhost:3000/api/aline-lead` |
 
 **POST (criar/atualizar):** Header `Authorization: Bearer <token>` e `Content-Type: application/json`; body em JSON (ver seção do endpoint 1).  
 **Newsletter:** body `{ "email": "..." }`; configure `NEWSLETTER_WEBHOOK_URL` para encaminhar ao n8n.  
+**Aline lead:** body `{ "email": "...", "name": "...", "messageCount": 3, "summary": "..." }`; chamado pelo n8n quando o usuário atinge o limite de buscas.  
 **Admin:** `/admin` no navegador; API com `Authorization: Bearer <ADMIN_SECRET>`.

@@ -9,4 +9,9 @@ const server = createServer(app);
 
 server.listen(env.port, () => {
   console.log(`Server running at http://localhost:${env.port}`);
+  if (!env.alineWebhookUrl?.trim()) {
+    console.warn("[Aline] ALINE_WEBHOOK_URL não configurada — chat da Aline não funcionará");
+  } else {
+    console.log("[Aline] Webhook configurado");
+  }
 });

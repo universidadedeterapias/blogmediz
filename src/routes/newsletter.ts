@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { env } from "../config/env.js";
+import { getWebhookSessionId } from "../lib/webhook-session.js";
 
 export const newsletterRouter = Router();
 
@@ -22,11 +23,13 @@ newsletterRouter.post("/", async (req: Request, res: Response): Promise<void> =>
     return;
   }
 
+  const sessionId = getWebhookSessionId(req, res);
+
   try {
     const forward = await fetch(webhookUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, sessionId }),
     });
 
     if (!forward.ok) {

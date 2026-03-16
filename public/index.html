@@ -828,17 +828,24 @@ function sendMsg(){
   fetch('/api/aline-chat',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
+    credentials:'include',
     body:JSON.stringify({message:text})
   })
-    .then(r=>r.json())
+    .then(r=>r.json().catch(()=>({})))
     .then(data=>{
       if(typing&&typing.parentNode)typing.parentNode.removeChild(typing);
       const reply=data.reply||data.error||'Desculpe, não consegui responder agora. Tente de novo.';
       addMsg(reply);
+      const inp=document.getElementById('alineInput');
+      if(inp){
+        if(data.limitReached)inp.placeholder='Digite seu email aqui para continuar...';
+        else if(data.emailSaved)inp.placeholder='Descreva sua dor ou sintoma...';
+      }
     })
-    .catch(()=>{
+    .catch(err=>{
       if(typing&&typing.parentNode)typing.parentNode.removeChild(typing);
-      addMsg('Erro de conexão. Tente de novo.');
+      addMsg('Erro de conexão. Verifique o console (F12) para mais detalhes.');
+      console.error('[Aline] Erro:', err);
     });
 }
 document.addEventListener('click',function(e){if(e.target.id==='alineSend'||(e.target.closest&&e.target.closest('#alineSend')))sendMsg();});
