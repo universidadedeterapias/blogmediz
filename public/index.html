@@ -841,8 +841,8 @@ function sendMsg(){
       addMsg('Erro de conexão. Tente de novo.');
     });
 }
-document.getElementById('alineSend').addEventListener('click',sendMsg);
-document.getElementById('alineInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
+document.addEventListener('click',function(e){if(e.target.id==='alineSend'||(e.target.closest&&e.target.closest('#alineSend')))sendMsg();});
+document.addEventListener('keydown',function(e){if(e.target.id==='alineInput'&&e.key==='Enter'){e.preventDefault();sendMsg();}});
 
 // ── SEARCH: procurar outros artigos ─────────────
 (function(){

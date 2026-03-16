@@ -104,8 +104,8 @@ O n8n costuma preencher `Content-Type` automaticamente quando você escolhe "JSO
 | O que aparece no blog | Campo | Como preencher |
 |----------------------|-------|----------------|
 | **Vídeo (YouTube)** | `content.video` | Aba "Links de mídia" → selecione o artigo → preencha URL do embed |
-| **Mapa mental** | `content.mindmap` | Aba "Links de mídia" → URL da imagem e legenda |
-| **Podcast** | `content.podcast` | Aba "Links de mídia" → URL do áudio, título, eyebrow |
+| **Mapa mental** | `content.mindmap` | Aba "Links de mídia" → URL da imagem ou **upload** (JPEG, PNG, GIF, WebP, máx. 5MB) |
+| **Podcast** | `content.podcast` | Aba "Links de mídia" → URL do áudio (.mp3/.m4a) **ou** link do YouTube, título, eyebrow |
 
 ### Blocos fixos (não vêm da API)
 
@@ -359,7 +359,11 @@ Configure no `.env` (ou na Vercel):
 
 ```env
 ADMIN_SECRET=sua-senha-secreta-admin
+SUPABASE_URL=https://seu-projeto.supabase.co
+SUPABASE_SERVICE_KEY=sua-chave-service-role
 ```
+
+**Upload de mapa mental:** na aba "Links de mídia", além de colar a URL, você pode enviar um arquivo (JPEG, PNG, GIF ou WebP, máx. 5MB). O upload usa Supabase Storage. Crie um bucket público chamado `mindmaps` no Supabase (Storage → New bucket → nome `mindmaps` → Public).
 
 **Página do painel:** abra no navegador `https://seu-projeto.vercel.app/admin` (ou `http://localhost:3000/admin`). Digite a senha de admin uma vez; em seguida selecione o artigo e preencha os campos.
 

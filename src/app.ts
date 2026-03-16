@@ -1,6 +1,7 @@
 import express from "express";
 import path from "node:path";
 import { adminRouter } from "./routes/admin.js";
+import { uploadRouter } from "./routes/upload.js";
 import { alineRouter } from "./routes/aline.js";
 import { articlesRouter } from "./routes/articles.js";
 import { newsletterRouter } from "./routes/newsletter.js";
@@ -13,6 +14,7 @@ app.use("/api/articles", articlesRouter);
 app.use("/api/newsletter", newsletterRouter);
 app.use("/api/aline-chat", alineRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/admin/upload", uploadRouter);
 
 const publicDir = path.join(process.cwd(), "public");
 app.use(express.static(publicDir));

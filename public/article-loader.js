@@ -16,6 +16,14 @@
     return { locale: "pt", slug: null };
   }
 
+  function normalizeYoutubeEmbedUrl(url) {
+    if (!url || typeof url !== "string") return "";
+    var u = url.trim();
+    var m = u.match(/(?:youtube\.com|m\.youtube\.com)\/(?:embed\/|watch\?v=)([a-zA-Z0-9_-]{11})/);
+    if (!m) m = u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
+    return m ? "https://www.youtube.com/embed/" + m[1] + "?rel=0&modestbranding=1" : "";
+  }
+
   function buildContentHtml(content) {
     if (!content) return "";
     const html = [];
@@ -30,14 +38,17 @@
       );
     });
     if (content.video && content.video.embedUrl) {
-      const title = content.video.title ? " title=\"" + escapeHtml(content.video.title) + "\"" : "";
-      html.push(
-        "<div class=\"vid-wrap\"><iframe src=\"" +
-          escapeHtml(content.video.embedUrl) +
-          "\" allowfullscreen" +
-          title +
-          "></iframe></div>"
-      );
+      var embedUrl = normalizeYoutubeEmbedUrl(content.video.embedUrl);
+      if (embedUrl) {
+        const title = content.video.title ? " title=\"" + escapeHtml(content.video.title) + "\"" : "";
+        html.push(
+          "<div class=\"vid-wrap\"><iframe src=\"" +
+            escapeHtml(embedUrl) +
+            "\" allowfullscreen" +
+            title +
+            "></iframe></div>"
+        );
+      }
     }
     if (content.mindmap && (content.mindmap.imageUrl || content.mindmap.caption)) {
       const img = content.mindmap.imageUrl
@@ -49,18 +60,31 @@
       html.push("<figure class=\"mindmap\">" + img + cap + "</figure>");
     }
     if (content.podcast && content.podcast.audioUrl) {
-      const eyebrow = content.podcast.eyebrow ? "<div class=\"eyebrow\">" + escapeHtml(content.podcast.eyebrow) + "</div>" : "";
-      const title = content.podcast.title ? "<div class=\"title\">" + escapeHtml(content.podcast.title) + "</div>" : "";
-      html.push(
-        "<div class=\"podcast-block\" id=\"podcast-block\">" +
-          "<button class=\"podcast-play-big\" id=\"playBtn\" aria-label=\"Ouvir episódio\"></button>" +
-          "<div class=\"podcast-info\">" + eyebrow + title + "</div>" +
-          "<audio id=\"podcastAudio\" src=\"" + escapeHtml(content.podcast.audioUrl) + "\"></audio>" +
-          "<div class=\"podcast-waveform\" id=\"waveform\"></div>" +
-          "<div class=\"podcast-prog\" id=\"progBar\"><div class=\"fill\" id=\"progFill\"></div></div>" +
-          "<div class=\"podcast-duration\" id=\"durLabel\">Clique para ouvir</div>" +
+      var podcastUrl = (content.podcast.audioUrl || "").trim();
+      var youtubeEmbed = normalizeYoutubeEmbedUrl(podcastUrl);
+      if (youtubeEmbed) {
+        var podTitle = content.podcast.title ? " title=\"" + escapeHtml(content.podcast.title) + "\"" : "";
+        html.push(
+          "<div class=\"podcast-block podcast-youtube\" id=\"podcast-block\">" +
+            (content.podcast.eyebrow ? "<div class=\"eyebrow\">" + escapeHtml(content.podcast.eyebrow) + "</div>" : "") +
+            (content.podcast.title ? "<div class=\"title\" style=\"margin-bottom:12px;\">" + escapeHtml(content.podcast.title) + "</div>" : "") +
+            "<div class=\"vid-wrap\"><iframe src=\"" + escapeHtml(youtubeEmbed) + "\" allowfullscreen" + podTitle + "></iframe></div>" +
           "</div>"
-      );
+        );
+      } else {
+        const eyebrow = content.podcast.eyebrow ? "<div class=\"eyebrow\">" + escapeHtml(content.podcast.eyebrow) + "</div>" : "";
+        const title = content.podcast.title ? "<div class=\"title\">" + escapeHtml(content.podcast.title) + "</div>" : "";
+        html.push(
+          "<div class=\"podcast-block\" id=\"podcast-block\">" +
+            "<button class=\"podcast-play-big\" id=\"playBtn\" aria-label=\"Ouvir episódio\"></button>" +
+            "<div class=\"podcast-info\">" + eyebrow + title + "</div>" +
+            "<audio id=\"podcastAudio\" src=\"" + escapeHtml(podcastUrl) + "\"></audio>" +
+            "<div class=\"podcast-waveform\" id=\"waveform\"></div>" +
+            "<div class=\"podcast-prog\" id=\"progBar\"><div class=\"fill\" id=\"progFill\"></div></div>" +
+            "<div class=\"podcast-duration\" id=\"durLabel\">Clique para ouvir</div>" +
+            "</div>"
+        );
+      }
     }
     (content.highlights || []).forEach(function (h) {
       var txt = typeof h === "string" ? h : (h && typeof h === "object" ? (h.text || h.content || h.value || "") : "");
@@ -130,6 +154,29 @@
           "<button class=\"email-submit\" id=\"newsletterSubmit\" type=\"button\">Receber</button>" +
         "</div>" +
         "<p class=\"email-msg\" id=\"newsletterMsg\" style=\"display:none;font-size:13px;margin-top:8px;\"></p>" +
+      "</div>"
+    );
+    html.push(
+      "<div class=\"aline-widget\" id=\"alineWidget\">" +
+        "<div class=\"aline-header\">" +
+          "<div class=\"aline-avatar\">🌿</div>" +
+          "<div class=\"aline-header-text\">" +
+            "<div class=\"aline-header-name\">Aline</div>" +
+            "<div class=\"aline-header-sub\"><span class=\"aline-status\"></span></div>" +
+          "</div>" +
+        "</div>" +
+        "<div class=\"aline-messages\" id=\"alineMsgs\">" +
+          "<div class=\"msg bot\"><div class=\"msg-avatar\">🌿</div><div class=\"msg-bubble\">Olá! Sou a Aline, a pesquisadora de Sentido Biológico do meDIZ. Posso te ajudar a entender a origem emocional da sua dor ou sintoma.</div></div>" +
+          "<div class=\"msg bot\"><div class=\"msg-avatar\">🌿</div><div class=\"msg-bubble\">Qual sintoma ou condição você quer explorar hoje?</div></div>" +
+        "</div>" +
+        "<div class=\"aline-input-row\">" +
+          "<input class=\"aline-input\" id=\"alineInput\" type=\"text\" placeholder=\"Descreva sua dor ou sintoma...\">" +
+          "<button class=\"aline-send\" id=\"alineSend\">➤</button>" +
+        "</div>" +
+        "<div class=\"aline-cta-strip\">" +
+          "<a href=\"https://universidadedeterapias.com.br\" target=\"_blank\" rel=\"noopener\">Universidade de Terapias →</a>" +
+          "<a href=\"https://universidadedeterapias.com.br/guia-impresso\" target=\"_blank\" rel=\"noopener\">Livro O Corpo Diz →</a>" +
+        "</div>" +
       "</div>"
     );
     return html.join("\n");

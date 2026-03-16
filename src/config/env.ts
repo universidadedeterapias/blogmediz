@@ -24,6 +24,10 @@ export const env = {
   adminEmail: optional("ADMIN_EMAIL", ""),
   /** Senha fixa para login no painel admin. */
   adminPassword: optional("ADMIN_PASSWORD", ""),
+  /** URL do projeto Supabase (ex.: https://xxx.supabase.co) — para upload de imagens no Storage. */
+  supabaseUrl: optional("SUPABASE_URL", ""),
+  /** Chave service_role do Supabase — para upload no Storage. Obtenha em Settings → API. */
+  supabaseServiceKey: optional("SUPABASE_SERVICE_KEY", ""),
 } as const;
 
 export function assertEnv(): void {

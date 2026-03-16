@@ -355,15 +355,19 @@
           </div>
           <div class="section">
             <strong>Mapa mental</strong>
-            <label for="mindmapImageUrl">URL da imagem</label>
-            <input type="url" id="mindmapImageUrl" placeholder="https://..." />
+            <label for="mindmapImageUrl">URL da imagem ou envie um arquivo</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+              <input type="url" id="mindmapImageUrl" placeholder="https://... ou use o upload abaixo" style="flex:1;min-width:200px;" />
+              <input type="file" id="mindmapFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="font-size:12px;" />
+              <span id="mindmapUploadStatus" style="font-size:12px;color:var(--light);"></span>
+            </div>
             <label for="mindmapCaption">Legenda (opcional)</label>
             <input type="text" id="mindmapCaption" placeholder="Legenda" />
           </div>
           <div class="section">
             <strong>Podcast</strong>
-            <label for="podcastAudioUrl">URL do áudio</label>
-            <input type="url" id="podcastAudioUrl" placeholder="https://..." />
+            <label for="podcastAudioUrl">URL do áudio ou YouTube</label>
+            <input type="url" id="podcastAudioUrl" placeholder="https://... (arquivo .mp3/.m4a ou link do YouTube)" />
             <label for="podcastTitle">Título (opcional)</label>
             <input type="text" id="podcastTitle" placeholder="Título" />
             <label for="podcastEyebrow">Eyebrow / etiqueta (opcional)</label>
@@ -421,6 +425,8 @@
     const videoThumbnailUrl = document.getElementById("videoThumbnailUrl");
     const videoTitle = document.getElementById("videoTitle");
     const mindmapImageUrl = document.getElementById("mindmapImageUrl");
+    const mindmapFileInput = document.getElementById("mindmapFileInput");
+    const mindmapUploadStatus = document.getElementById("mindmapUploadStatus");
     const mindmapCaption = document.getElementById("mindmapCaption");
     const podcastAudioUrl = document.getElementById("podcastAudioUrl");
     const podcastTitle = document.getElementById("podcastTitle");
@@ -446,6 +452,35 @@
     }
 
     articleSelect.addEventListener("change", onSelectArticle);
+
+    mindmapFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      mindmapUploadStatus.textContent = "Enviando…";
+      mindmapUploadStatus.style.color = "";
+      const fd = new FormData();
+      fd.append("file", file);
+      try {
+        const r = await api("/upload", {
+          method: "POST",
+          headers: {},
+          body: fd,
+        });
+        const data = await r.json().catch(() => ({}));
+        if (r.ok && data.url) {
+          mindmapImageUrl.value = data.url;
+          mindmapUploadStatus.textContent = "Upload concluído.";
+          mindmapUploadStatus.style.color = "var(--success, #2e7d32)";
+        } else {
+          mindmapUploadStatus.textContent = data.error || "Falha no upload.";
+          mindmapUploadStatus.style.color = "var(--error, #c62828)";
+        }
+      } catch (err) {
+        mindmapUploadStatus.textContent = "Erro de conexão.";
+        mindmapUploadStatus.style.color = "var(--error, #c62828)";
+      }
+      mindmapFileInput.value = "";
+    });
 
     if (getToken()) {
       showPanel();
