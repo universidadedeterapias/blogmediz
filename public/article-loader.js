@@ -22,9 +22,10 @@
     const main = content.mainContent ?? content.body ?? "";
     if (main) html.push("<div class=\"content-body\">" + main + "</div>");
     (content.surprises || []).forEach(function (s) {
+      var txt = typeof s === "string" ? s : (s && typeof s === "object" ? (s.text ?? s.content ?? s.value ?? "") : "");
       html.push(
         "<div class=\"surprise\"><div class=\"tag\">💡 Isso vai te surpreender</div><p>" +
-          escapeHtml(s.text || "") +
+          escapeHtml(txt || "") +
           "</p></div>"
       );
     });
@@ -62,7 +63,8 @@
       );
     }
     (content.highlights || []).forEach(function (h) {
-      html.push("<div class=\"hl\"><p>\"" + escapeHtml(h.text || "") + "\"</p></div>");
+      var txt = typeof h === "string" ? h : (h && typeof h === "object" ? (h.text || h.content || h.value || "") : "");
+      html.push("<div class=\"hl\"><p>\"" + escapeHtml(txt || "") + "\"</p></div>");
     });
     if (content.hypothesis && content.hypothesis.trim()) {
       html.push(
