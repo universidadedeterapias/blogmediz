@@ -18,3 +18,24 @@ export function bearerAuth(
   }
   next();
 }
+
+export function adminAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void {
+  if (!env.adminSecret) {
+    res.status(503).json({ error: "Admin not configured (ADMIN_SECRET)" });
+    return;
+  }
+  const auth = req.headers.authorization;
+  if (!auth?.startsWith("Bearer ")) {
+    res.status(401).json({ error: "Missing or invalid Authorization header" });
+    return;
+  }
+  if (auth.slice(7) !== env.adminSecret) {
+    res.status(403).json({ error: "Invalid admin token" });
+    return;
+  }
+  next();
+}

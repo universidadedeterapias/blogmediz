@@ -12,9 +12,8 @@ export default defineConfig({
   migrations: {
     path: "prisma/migrations",
   },
-  // Prisma 7 usa só uma URL. Para migrations, use DIRECT_URL se existir (Session pooler 5432);
-  // para o app, use DATABASE_URL (Transaction pooler 6543). Aqui o CLI usa DIRECT_URL para migrate.
   datasource: {
+    // Volta a usar o Postgres do Supabase (DIRECT_URL ou DATABASE_URL).
     url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

@@ -19,8 +19,8 @@ export interface ArticleContentPayload {
   body?: string;
   /** Blocos "Isso vai te surpreender". */
   surprises?: Array<{ text: string }>;
-  /** Vídeo: URL do embed (ex.: YouTube). */
-  video?: { embedUrl?: string; title?: string } | null;
+  /** Vídeo: URL do embed (ex.: YouTube) e opcional miniatura. */
+  video?: { embedUrl?: string; thumbnailUrl?: string; title?: string } | null;
   /** Mapa mental: URL da imagem e legenda. */
   mindmap?: { imageUrl?: string; caption?: string } | null;
   /** Podcast: URL do áudio, título, eyebrow. */

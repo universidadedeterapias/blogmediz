@@ -69,6 +69,7 @@ articlesRouter.get("/:locale/:slug", async (req: Request, res: Response): Promis
       res.status(404).json({ error: "Article not found" });
       return;
     }
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.json(article);
   } catch (e) {
     console.error("Article find error:", e);
@@ -102,6 +103,7 @@ articlesRouter.get("/:locale", async (req: Request, res: Response): Promise<void
         publishedAt: true,
       },
     });
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     res.json(articles);
   } catch (e) {
     console.error("Article list error:", e);

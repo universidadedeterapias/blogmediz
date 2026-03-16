@@ -79,7 +79,58 @@
     if (content.relatedSlugs && content.relatedSlugs.length > 0) {
       html.push("<div class=\"related\"><h2>Quem leu isso também explorou:</h2><div class=\"related-grid\" id=\"related-grid\"></div></div>");
     }
+    html.push(
+      "<div class=\"email-capture\">" +
+        "<h3>Aprofunde o assunto</h3>" +
+        "<p>Receba materiais em PDF e mais. Só o seu e-mail:</p>" +
+        "<div class=\"email-row\">" +
+          "<input class=\"email-input\" id=\"newsletterEmail\" type=\"email\" placeholder=\"seu@email.com\" required>" +
+          "<button class=\"email-submit\" id=\"newsletterSubmit\" type=\"button\">Receber</button>" +
+        "</div>" +
+        "<p class=\"email-msg\" id=\"newsletterMsg\" style=\"display:none;font-size:13px;margin-top:8px;\"></p>" +
+      "</div>"
+    );
     return html.join("\n");
+  }
+
+  function bindNewsletterForm(container) {
+    if (!container) return;
+    var btn = container.querySelector("#newsletterSubmit");
+    var input = container.querySelector("#newsletterEmail");
+    var msg = container.querySelector("#newsletterMsg");
+    if (!btn || !input) return;
+    btn.onclick = function () {
+      var email = (input.value || "").trim();
+      if (!email) {
+        if (msg) { msg.textContent = "Digite seu e-mail."; msg.style.display = "block"; msg.style.color = "#e57373"; }
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (msg) { msg.textContent = "E-mail inválido."; msg.style.display = "block"; msg.style.color = "#e57373"; }
+        return;
+      }
+      btn.disabled = true;
+      if (msg) msg.style.display = "none";
+      fetch("/api/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email }),
+      })
+        .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, data: d }; }); })
+        .then(function (res) {
+          if (res.ok) {
+            if (msg) { msg.textContent = "Obrigado! Em breve você receberá os materiais."; msg.style.color = "#81c784"; msg.style.display = "block"; }
+            input.value = "";
+          } else {
+            if (msg) { msg.textContent = (res.data && res.data.error) ? res.data.error : "Não foi possível cadastrar. Tente de novo."; msg.style.color = "#e57373"; msg.style.display = "block"; }
+          }
+        })
+        .catch(function () {
+          if (msg) { msg.textContent = "Erro de conexão. Tente de novo."; msg.style.color = "#e57373"; msg.style.display = "block"; }
+        })
+        .finally(function () { btn.disabled = false; });
+    };
+    input.onkeydown = function (e) { if (e.key === "Enter") btn.click(); };
   }
 
   function escapeHtml(s) {
@@ -126,7 +177,7 @@
 
   function fillRelated(container, locale, slugs) {
     if (!container || !slugs.length) return;
-    fetch("/api/articles/" + locale + "?limit=20")
+    fetch("/api/articles/" + locale + "?limit=20&_=" + Date.now())
       .then(function (r) { return r.json(); })
       .then(function (list) {
         const bySlug = {};
@@ -141,12 +192,62 @@
       .catch(function () { container.innerHTML = ""; });
   }
 
+  function fillLatestArticles(locale) {
+    var wrap = document.getElementById("latest-articles");
+    var sb = document.getElementById("sidebar-latest-list");
+    if (wrap) {
+      wrap.innerHTML = "<p style='color:var(--mid);font-size:14px;'>Carregando…</p>";
+      wrap.style.display = "block";
+    }
+    if (sb) {
+      sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Carregando…</li>";
+    }
+    fetch("/api/articles/" + locale + "?limit=10&_=" + Date.now())
+      .then(function (r) { return r.json(); })
+      .then(function (list) {
+        if (!list || list.length === 0) {
+          if (wrap) {
+            wrap.innerHTML = "";
+            wrap.style.display = "none";
+          }
+          if (sb) sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Nenhum artigo cadastrado ainda.</li>";
+          return;
+        }
+        // limitar sidebar a 5
+        var top5 = list.slice(0, 5);
+        if (wrap) {
+          var html = "<h2 style='font-family: Fraunces, serif; font-size: 1.25rem; margin-bottom: 12px; color: var(--dark);'>Últimos artigos</h2><ul class='latest-articles-list' style='list-style:none;padding:0;margin:0;'>";
+          list.forEach(function (a) {
+            html += "<li style='margin-bottom: 8px;'><a href=\"/" + locale + "/" + escapeHtml(a.slug) + "\" style='color: var(--terra); text-decoration: none;'>" + escapeHtml(a.title) + "</a></li>";
+          });
+          html += "</ul>";
+          wrap.innerHTML = html;
+        }
+        if (sb) {
+          sb.innerHTML = top5.map(function (a) {
+            return "<li><a href=\"/" + locale + "/" + escapeHtml(a.slug) + "\">" + escapeHtml(a.title) + "</a></li>";
+          }).join("");
+        }
+      })
+      .catch(function () {
+        if (wrap) {
+          wrap.innerHTML = "";
+          wrap.style.display = "none";
+        }
+        if (sb) sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Não foi possível carregar os artigos.</li>";
+      });
+  }
+
   function run() {
     const { locale, slug } = getLocaleAndSlug();
     setLangActive(locale);
-    if (!slug) return;
+    if (!slug) {
+      updateLangLinks(locale, null);
+      fillLatestArticles(locale);
+      return;
+    }
     updateLangLinks(locale, slug);
-    fetch("/api/articles/" + locale + "/" + encodeURIComponent(slug))
+    fetch("/api/articles/" + locale + "/" + encodeURIComponent(slug) + "?_=" + Date.now())
       .then(function (r) {
         if (!r.ok) throw new Error("Article not found");
         return r.json();
@@ -156,6 +257,7 @@
         const contentEl = document.querySelector(".content");
         if (contentEl && article.content) {
           contentEl.innerHTML = buildContentHtml(article.content);
+          bindNewsletterForm(contentEl);
           const relatedGrid = document.getElementById("related-grid");
           const content = article.content || {};
           if (relatedGrid && content.relatedSlugs && content.relatedSlugs.length > 0) {

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <title>Diabetes Tipo 1 tem origem emocional? | meDIZ</title>
+<link rel="icon" type="image/png" href="/favicon.png?v=4">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300;1,9..144,600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
 <style>
 /* ── RESET & BASE ─────────────────────────────── */
@@ -34,10 +35,9 @@ a{color:inherit;text-decoration:none}
   gap:12px;
 }
 .logo{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.logo-txt{font-family:"Fraunces",serif;font-size:22px;color:#fff;font-weight:600;letter-spacing:-.01em}
-.logo-txt .excl{color:var(--terra-lt)}
+.logo-img{height:32px;display:block}
 
-/* Busca no topo — visualmente distinta */
+/* Busca no topo — artigos do blog */
 .search-wrap{
   flex:1;max-width:440px;position:relative;
 }
@@ -381,6 +381,10 @@ a{color:inherit;text-decoration:none}
 .aline-cta-strip a::after{content:"→";transition:transform .2s}
 .aline-cta-strip a:hover::after{transform:translateX(3px)}
 
+/* ── ÚLTIMOS ARTIGOS (home) ──────────────────── */
+.latest-articles{margin-bottom:24px;padding-bottom:20px;border-bottom:1px solid var(--border)}
+.latest-articles a:hover{text-decoration:underline}
+
 /* ── EMAIL CAPTURE ───────────────────────────── */
 .email-capture{
   background:linear-gradient(135deg,#2d1f15,#4a2d1a);
@@ -475,30 +479,20 @@ a{color:inherit;text-decoration:none}
   font-family:"Fraunces",serif;font-size:15px;color:var(--dark);
   margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--border);
 }
-/* Aline sidebar */
-.sb-aline{
+/* Sidebar: últimos artigos */
+.sb-latest{
   background:#fff;border:1px solid var(--border);
-  border-radius:var(--r);overflow:hidden;
+  border-radius:var(--r);padding:16px;
 }
-.sb-aline-head{
-  background:linear-gradient(135deg,#3d2b1f,#5a3520);
-  padding:12px 14px;
-  display:flex;align-items:center;gap:10px;
+.sb-latest h4{
+  font-family:"Fraunces",serif;font-size:15px;color:var(--dark);
+  margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);
 }
-.sb-aline-avatar{
-  width:36px;height:36px;border-radius:50%;
-  background:var(--terra);display:flex;align-items:center;
-  justify-content:center;font-size:16px;flex-shrink:0;
+.sb-latest ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.sb-latest a{
+  font-size:13px;color:var(--terra-dk);text-decoration:none;
 }
-.sb-aline-name{font-family:"Fraunces",serif;font-size:14px;color:#fff}
-.sb-aline-online{font-size:10px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:4px}
-.sb-aline-msgs{
-  padding:12px;background:var(--bg);
-  display:flex;flex-direction:column;gap:8px;
-}
-.sb-msg-bubble{
-  background:#fff;border:1px solid var(--border);
-  border-radius:10px;border-bottom-left-radius:3px;
+.sb-latest a:hover{text-decoration:underline}
   padding:9px 11px;font-size:13px;color:var(--dark);line-height:1.5;
 }
 .sb-input-row{
@@ -550,12 +544,12 @@ a{color:inherit;text-decoration:none}
 <!-- ── TOPBAR ─────────────────────────────────── -->
 <header class="topbar">
   <div class="logo">
-    <span class="logo-txt">meDIZ<span class="excl">!</span></span>
+    <img class="logo-img" src="/BLOG%20Logo.png" alt="BLOG meDIZ — O corpo fala. Nós traduzimos." />
   </div>
 
   <div class="search-wrap">
-    <span class="search-label">Pesquise por sintoma ou dor</span>
-    <input class="search-input" type="search" placeholder="enxaqueca, ansiedade, diabetes...">
+    <span class="search-label">Busque artigos do blog</span>
+    <input class="search-input" id="articleSearchInput" type="search" placeholder="digite um tema ou título...">
     <span class="search-icon">🔍</span>
   </div>
 
@@ -569,6 +563,8 @@ a{color:inherit;text-decoration:none}
 <!-- ── LAYOUT ─────────────────────────────────── -->
 <div class="layout">
 <main class="main">
+
+  <div id="latest-articles" class="latest-articles" aria-label="Últimos artigos"></div>
 
   <span class="cat-tag">Sistema Imune e Geral</span>
   <h1 class="art-title">Diabetes Tipo 1 tem origem emocional?<br>O que o pâncreas está tentando te dizer</h1>
@@ -706,9 +702,10 @@ a{color:inherit;text-decoration:none}
       <h3>Aprofunde o assunto</h3>
       <p>Receba uma apresentação pronta sobre Diabetes Tipo 1, guias em PDF e mais materiais. Só o seu e-mail:</p>
       <div class="email-row">
-        <input class="email-input" type="email" placeholder="seu@email.com">
-        <button class="email-submit">Receber</button>
+        <input class="email-input" id="newsletterEmail" type="email" placeholder="seu@email.com" required>
+        <button class="email-submit" id="newsletterSubmit" type="button">Receber</button>
       </div>
+      <p class="email-msg" id="newsletterMsg" style="display:none;font-size:13px;margin-top:8px;"></p>
       <div class="email-perks">
         <span>Apresentação completa</span>
         <span>Guias em PDF</span>
@@ -784,22 +781,12 @@ a{color:inherit;text-decoration:none}
     </nav>
   </div>
 
-  <!-- ALINE SIDEBAR -->
-  <div class="sb-aline">
-    <div class="sb-aline-head">
-      <div class="sb-aline-avatar">🌿</div>
-      <div>
-        <div class="sb-aline-name">Aline</div>
-        <div class="sb-aline-online"><span class="aline-status"></span> Pesquisa do Sentido Biológico</div>
-      </div>
-    </div>
-    <div class="sb-aline-msgs">
-      <div class="sb-msg-bubble">Qual dor ou sintoma você quer entender hoje?</div>
-    </div>
-    <div class="sb-input-row">
-      <input class="sb-input" type="text" placeholder="descreva seu sintoma...">
-      <button class="sb-send">➤</button>
-    </div>
+  <!-- ÚLTIMOS ARTIGOS SIDEBAR -->
+  <div class="sb-latest" id="sidebar-latest">
+    <h4>Últimos artigos</h4>
+    <ul id="sidebar-latest-list">
+      <li style="font-size:13px;color:var(--light);">Carregando…</li>
+    </ul>
   </div>
 </aside>
 
@@ -866,47 +853,119 @@ const observer=new IntersectionObserver(entries=>{
 },{rootMargin:'-20% 0px -70% 0px'});
 document.querySelectorAll('h2[id]').forEach(h=>observer.observe(h));
 
-// ── ALINE CHAT ─────────────────────────────────
-const responses={
-  'diabetes':['O pâncreas governa a "doçura de vida" — a capacidade de receber o que está disponível.','No Sentido Biológico, o DM1 pode estar relacionado a um conflito entre o que está emocionalmente disponível e a dificuldade em recebê-lo.','Quer explorar mais a fundo a sua história com isso? O app meDIZ faz esse mapeamento personalizado 👆'],
-  'default':['Entendi. Esse sintoma tem uma história interessante no Sentido Biológico.','Para fazer um mapeamento completo da sua origem emocional específica, o app meDIZ consegue ir muito mais fundo — levando em conta a sua história de vida.','Quer explorar pelo app? 👆']
-};
+// ── ALINE CHAT (envia para webhook n8n) ────────
 function addMsg(text,type='bot'){
   const msgs=document.getElementById('alineMsgs');
+  if(!msgs)return;
   const div=document.createElement('div');
   div.className='msg '+type;
-  div.innerHTML=type==='bot'?`<div class="msg-avatar">🌿</div><div class="msg-bubble">${text}</div>`:`<div class="msg-bubble">${text}</div>`;
+  div.innerHTML=type==='bot'?`<div class="msg-avatar">🌿</div><div class="msg-bubble">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`:`<div class="msg-bubble">${text.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>`;
   msgs.appendChild(div);
   msgs.scrollTop=msgs.scrollHeight;
 }
-function typeResponse(arr,i=0){
-  if(i>=arr.length)return;
-  setTimeout(()=>{
-    // typing indicator
-    const typing=document.createElement('div');
-    typing.className='msg bot';
-    typing.innerHTML='<div class="msg-avatar">🌿</div><div class="msg-typing"><span></span><span></span><span></span></div>';
-    const msgs=document.getElementById('alineMsgs');
-    msgs.appendChild(typing);
-    msgs.scrollTop=msgs.scrollHeight;
-    setTimeout(()=>{
-      msgs.removeChild(typing);
-      addMsg(arr[i]);
-      typeResponse(arr,i+1);
-    },900);
-  },i===0?400:200);
+function showTyping(){
+  const msgs=document.getElementById('alineMsgs');
+  if(!msgs)return null;
+  const typing=document.createElement('div');
+  typing.className='msg bot';
+  typing.id='alineTyping';
+  typing.innerHTML='<div class="msg-avatar">🌿</div><div class="msg-typing"><span></span><span></span><span></span></div>';
+  msgs.appendChild(typing);
+  msgs.scrollTop=msgs.scrollHeight;
+  return typing;
 }
 function sendMsg(){
   const input=document.getElementById('alineInput');
-  const text=input.value.trim();
+  const text=(input?.value||'').trim();
   if(!text)return;
   addMsg(text,'user');
-  input.value='';
-  const key=Object.keys(responses).find(k=>text.toLowerCase().includes(k))||'default';
-  typeResponse(responses[key]);
+  if(input)input.value='';
+  const typing=showTyping();
+  fetch('/api/aline-chat',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({message:text})
+  })
+    .then(r=>r.json())
+    .then(data=>{
+      if(typing&&typing.parentNode)typing.parentNode.removeChild(typing);
+      const reply=data.reply||data.error||'Desculpe, não consegui responder agora. Tente de novo.';
+      addMsg(reply);
+    })
+    .catch(()=>{
+      if(typing&&typing.parentNode)typing.parentNode.removeChild(typing);
+      addMsg('Erro de conexão. Tente de novo.');
+    });
 }
 document.getElementById('alineSend').addEventListener('click',sendMsg);
 document.getElementById('alineInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
+
+// ── SEARCH: procurar outros artigos ─────────────
+(function(){
+  const input=document.getElementById('articleSearchInput');
+  if(!input) return;
+  function getLocale(){
+    const path=window.location.pathname.replace(/^\/+|\/+$/g,'')||'';
+    const parts=path.split('/');
+    const first=parts[0]||'pt';
+    return ['pt','es','en'].includes(first)?first:'pt';
+  }
+  function doSearch(){
+    const q=(input.value||'').trim().toLowerCase();
+    if(q.length<2)return;
+    const locale=getLocale();
+    fetch('/api/articles/'+locale+'?limit=100')
+      .then(r=>r.json())
+      .then(list=>{
+        if(!Array.isArray(list)||list.length===0){alert('Nenhum artigo encontrado ainda.');return;}
+        const matches=list.filter(a=>{
+          const t=(a.title||'').toLowerCase();
+          const c=(a.categoryTag||'').toLowerCase();
+          const s=(a.slug||'').toLowerCase();
+          return t.includes(q)||c.includes(q)||s.includes(q);
+        });
+        if(matches.length===0){alert('Nenhum artigo encontrado para "'+q+'".');return;}
+        // Por simplicidade, vai para o primeiro resultado.
+        window.location.href='/'+locale+'/'+matches[0].slug;
+      })
+      .catch(()=>{alert('Não foi possível buscar artigos agora.');});
+  }
+  input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+})();
+
+// ── NEWSLETTER: envia email para POST /api/newsletter (webhook n8n)
+(function(){
+  var btn=document.getElementById('newsletterSubmit');
+  var input=document.getElementById('newsletterEmail');
+  var msg=document.getElementById('newsletterMsg');
+  if(!btn||!input) return;
+  function showMsg(text,ok){
+    if(!msg) return;
+    msg.textContent=text;
+    msg.style.display='block';
+    msg.style.color=ok?'#81c784':'#e57373';
+  }
+  btn.addEventListener('click',function(){
+    var email=(input.value||'').trim();
+    if(!email){ showMsg('Digite seu e-mail.'); return; }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){ showMsg('E-mail inválido.'); return; }
+    btn.disabled=true;
+    msg.style.display='none';
+    fetch('/api/newsletter',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:email})
+    })
+      .then(function(r){ return r.json().then(function(d){ return { ok: r.ok, data: d }; }); })
+      .then(function(_){
+        if(_.ok){ showMsg('Obrigado! Em breve você receberá os materiais.'); input.value=''; }
+        else{ showMsg(_.data&&_.data.error?_.data.error:'Não foi possível cadastrar. Tente de novo.'); }
+      })
+      .catch(function(){ showMsg('Erro de conexão. Tente de novo.'); })
+      .finally(function(){ btn.disabled=false; });
+  });
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter') btn.click(); });
+})();
 </script>
 <script src="/article-loader.js"></script>
 </body>
