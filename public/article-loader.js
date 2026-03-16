@@ -64,6 +64,27 @@
     (content.highlights || []).forEach(function (h) {
       html.push("<div class=\"hl\"><p>\"" + escapeHtml(h.text || "") + "\"</p></div>");
     });
+    if (content.hypothesis && content.hypothesis.trim()) {
+      html.push(
+        "<h2 id=\"hipotese\">A hipótese emocional — o que pode estar por trás</h2>" +
+        "<div class=\"content-body\">" + content.hypothesis + "</div>"
+      );
+    }
+    var patterns = content.patterns && content.patterns.length > 0
+      ? content.patterns
+      : [
+          "Ambiente familiar imprevisível nos anos de formação — amor disponível, mas com condições",
+          "Aprendizado precoce de que pedir cuidado é arriscado",
+          "Transição abrupta de contexto no período próximo ao diagnóstico",
+          "Conflito intenso entre querer pertencer e sentir que pertencer é perigoso"
+        ];
+    html.push(
+      "<h2 id=\"padroes\">Padrões que aparecem com frequência</h2>" +
+      "<p>Uma hipótese do Sentido Biológico — sem confirmação científica estabelecida — sugere que esses padrões aparecem com recorrência em pessoas com doenças autoimunes:</p>" +
+      "<ul class=\"patterns-list\" style=\"padding-left:20px;margin-bottom:18px;color:var(--mid)\">" +
+      patterns.map(function (p) { return "<li style=\"margin-bottom:8px\">" + escapeHtml(String(p)) + "</li>"; }).join("") +
+      "</ul>"
+    );
     if (content.faq && content.faq.length > 0) {
       html.push("<div class=\"faq\" id=\"faq\"><h2>Perguntas frequentes</h2>");
       content.faq.forEach(function (item) {
@@ -76,13 +97,32 @@
       });
       html.push("</div>");
     }
-    if (content.relatedSlugs && content.relatedSlugs.length > 0) {
-      html.push("<div class=\"related\"><h2>Quem leu isso também explorou:</h2><div class=\"related-grid\" id=\"related-grid\"></div></div>");
-    }
+    html.push(
+      "<a class=\"prod-card\" href=\"https://universidadedeterapias.com.br/guia-impresso\" target=\"_blank\" rel=\"noopener\">" +
+        "<div class=\"prod-card-img\"><div class=\"prod-card-placeholder\" style=\"width:100%;height:100%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:40px;\">📘</div></div>" +
+        "<div class=\"prod-card-body\">" +
+          "<div class=\"prod-card-eyebrow\">Para ir mais fundo</div>" +
+          "<div class=\"prod-card-title\">O Corpo Diz — Prof. Paulo Barbosa</div>" +
+          "<div class=\"prod-card-desc\">A função emocional completa de cada órgão, tecido e parte do corpo.</div>" +
+          "<div class=\"prod-card-cta\">Conhecer o livro</div>" +
+        "</div>" +
+      "</a>"
+    );
+    html.push(
+      "<a class=\"prod-card pdf\" href=\"https://universidadedeterapias.com.br\" target=\"_blank\" rel=\"noopener\">" +
+        "<div class=\"prod-card-img\"><div class=\"prod-card-placeholder\" style=\"width:100%;height:100%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:40px;\">📄</div></div>" +
+        "<div class=\"prod-card-body\">" +
+          "<div class=\"prod-card-eyebrow\">Guia completo</div>" +
+          "<div class=\"prod-card-title\">PDF Sentido Biológico — Diabetes Tipo 1</div>" +
+          "<div class=\"prod-card-desc\">Os 12 aspectos emocionais específicos do DM1. Decodificação completa para este diagnóstico.</div>" +
+          "<div class=\"prod-card-cta\">Acessar o PDF</div>" +
+        "</div>" +
+      "</a>"
+    );
     html.push(
       "<div class=\"email-capture\">" +
         "<h3>Aprofunde o assunto</h3>" +
-        "<p>Receba materiais em PDF e mais. Só o seu e-mail:</p>" +
+        "<p>Receba uma apresentação pronta, guias em PDF e mais materiais. Só o seu e-mail:</p>" +
         "<div class=\"email-row\">" +
           "<input class=\"email-input\" id=\"newsletterEmail\" type=\"email\" placeholder=\"seu@email.com\" required>" +
           "<button class=\"email-submit\" id=\"newsletterSubmit\" type=\"button\">Receber</button>" +
@@ -134,16 +174,18 @@
   }
 
   function escapeHtml(s) {
+    if (s == null || s === undefined) return "";
     const div = document.createElement("div");
-    div.textContent = s;
+    div.textContent = String(s);
     return div.innerHTML;
   }
 
   function setMeta(article) {
+    if (!article) return;
     const cat = document.querySelector(".cat-tag");
     if (cat) cat.textContent = article.categoryTag || "";
     const titleEl = document.querySelector(".art-title");
-    if (titleEl) titleEl.innerHTML = article.title.replace(/\n/g, "<br>");
+    if (titleEl) titleEl.innerHTML = (article.title || "").replace(/\n/g, "<br>");
     document.title = article.title + " | meDIZ";
     const meta = document.querySelector(".art-meta");
     if (meta) {
@@ -175,21 +217,33 @@
     else html.setAttribute("lang", "en");
   }
 
-  function fillRelated(container, locale, slugs) {
-    if (!container || !slugs.length) return;
-    fetch("/api/articles/" + locale + "?limit=20&_=" + Date.now())
-      .then(function (r) { return r.json(); })
-      .then(function (list) {
-        const bySlug = {};
-        list.forEach(function (a) { bySlug[a.slug] = a; });
-        const html = slugs.slice(0, 6).map(function (slug) {
-          const a = bySlug[slug];
-          const t = a ? a.title : slug;
-          return "<a href=\"/" + locale + "/" + slug + "\" class=\"related-card\">" + escapeHtml(t) + "</a>";
-        }).join("");
-        container.innerHTML = html;
-      })
-      .catch(function () { container.innerHTML = ""; });
+  function slugify(text) {
+    return String(text || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  function buildDynamicToc(container) {
+    var tocNav = document.querySelector(".toc");
+    if (!tocNav || !container) return;
+    var h2s = container.querySelectorAll("h2");
+    if (h2s.length === 0) {
+      tocNav.innerHTML = "<span style='font-size:13px;color:var(--light);'>Nenhuma seção</span>";
+      return;
+    }
+    var links = [];
+    h2s.forEach(function (h2, i) {
+      var id = h2.id || ("sec-" + i);
+      if (!h2.id) {
+        h2.id = slugify(h2.textContent) || id;
+        id = h2.id;
+      }
+      links.push("<a href=\"#" + escapeHtml(id) + "\">" + escapeHtml((h2.textContent || "").trim()) + "</a>");
+    });
+    tocNav.innerHTML = links.join("");
   }
 
   function fillLatestArticles(locale) {
@@ -203,9 +257,12 @@
       sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Carregando…</li>";
     }
     fetch("/api/articles/" + locale + "?limit=10&_=" + Date.now())
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error("API " + r.status);
+        return r.json();
+      })
       .then(function (list) {
-        if (!list || list.length === 0) {
+        if (!Array.isArray(list) || list.length === 0) {
           if (wrap) {
             wrap.innerHTML = "";
             wrap.style.display = "none";
@@ -218,51 +275,44 @@
         if (wrap) {
           var html = "<h2 style='font-family: Fraunces, serif; font-size: 1.25rem; margin-bottom: 12px; color: var(--dark);'>Últimos artigos</h2><ul class='latest-articles-list' style='list-style:none;padding:0;margin:0;'>";
           list.forEach(function (a) {
-            html += "<li style='margin-bottom: 8px;'><a href=\"/" + locale + "/" + escapeHtml(a.slug) + "\" style='color: var(--terra); text-decoration: none;'>" + escapeHtml(a.title) + "</a></li>";
+            html += "<li style='margin-bottom: 8px;'><a href=\"/" + locale + "/" + encodeURIComponent(a.slug) + "\" style='color: var(--terra); text-decoration: none;'>" + escapeHtml(a.title) + "</a></li>";
           });
           html += "</ul>";
           wrap.innerHTML = html;
         }
         if (sb) {
           sb.innerHTML = top5.map(function (a) {
-            return "<li><a href=\"/" + locale + "/" + escapeHtml(a.slug) + "\">" + escapeHtml(a.title) + "</a></li>";
+            return "<li><a href=\"/" + locale + "/" + encodeURIComponent(a.slug) + "\">" + escapeHtml(a.title) + "</a></li>";
           }).join("");
         }
       })
-      .catch(function () {
+      .catch(function (err) {
         if (wrap) {
-          wrap.innerHTML = "";
-          wrap.style.display = "none";
+          wrap.innerHTML = "<p style='font-size:14px;color:var(--light);'>Não foi possível carregar os artigos.</p>";
+          wrap.style.display = "block";
         }
         if (sb) sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Não foi possível carregar os artigos.</li>";
       });
   }
 
-  function run() {
-    const { locale, slug } = getLocaleAndSlug();
-    setLangActive(locale);
-    if (!slug) {
-      updateLangLinks(locale, null);
-      fillLatestArticles(locale);
-      return;
-    }
-    updateLangLinks(locale, slug);
-    fetch("/api/articles/" + locale + "/" + encodeURIComponent(slug) + "?_=" + Date.now())
+  function loadArticle(locale, slug, contentEl) {
+    return fetch("/api/articles/" + locale + "/" + encodeURIComponent(slug) + "?_=" + Date.now())
       .then(function (r) {
         if (!r.ok) throw new Error("Article not found");
         return r.json();
       })
       .then(function (article) {
         setMeta(article);
-        const contentEl = document.querySelector(".content");
         if (contentEl && article.content) {
-          contentEl.innerHTML = buildContentHtml(article.content);
-          bindNewsletterForm(contentEl);
-          const relatedGrid = document.getElementById("related-grid");
-          const content = article.content || {};
-          if (relatedGrid && content.relatedSlugs && content.relatedSlugs.length > 0) {
-            fillRelated(relatedGrid, locale, content.relatedSlugs);
+          try {
+            contentEl.innerHTML = buildContentHtml(article.content);
+            bindNewsletterForm(contentEl);
+            buildDynamicToc(contentEl);
+          } catch (e) {
+            console.error("Erro ao renderizar artigo:", e);
+            contentEl.innerHTML = "<p style='color:var(--light);'>Erro ao carregar o conteúdo do artigo.</p>";
           }
+          var content = article.content || {};
           if (content.podcast && content.podcast.audioUrl) {
             setTimeout(function () {
               var playBtn = document.getElementById("playBtn");
@@ -289,10 +339,46 @@
           });
         }
       })
-      .catch(function () {
-        var contentEl = document.querySelector(".content");
-        if (contentEl) contentEl.innerHTML = "<p>Artigo não encontrado.</p>";
+      .catch(function (err) {
+        console.error("Erro ao carregar artigo:", err);
+        throw err;
       });
+  }
+
+  function run() {
+    const { locale, slug } = getLocaleAndSlug();
+    setLangActive(locale);
+    var contentEl = document.querySelector(".content");
+    fillLatestArticles(locale);
+    if (!slug) {
+      updateLangLinks(locale, null);
+      fetch("/api/articles/" + locale + "?limit=1&_=" + Date.now())
+        .then(function (r) {
+          if (!r.ok) throw new Error("API " + r.status);
+          return r.json();
+        })
+        .then(function (list) {
+          if (Array.isArray(list) && list.length > 0) {
+            var newest = list[0];
+            updateLangLinks(locale, newest.slug);
+            return loadArticle(locale, newest.slug, contentEl);
+          }
+        })
+        .catch(function () {
+          if (contentEl) {
+            contentEl.innerHTML = "<p style='color:var(--light);'>Nenhum artigo disponível.</p>";
+            buildDynamicToc(contentEl);
+          }
+        });
+      return;
+    }
+    updateLangLinks(locale, slug);
+    loadArticle(locale, slug, contentEl).catch(function () {
+      if (contentEl) {
+        contentEl.innerHTML = "<p style='color:var(--light);'>Artigo não encontrado.</p>";
+        buildDynamicToc(contentEl);
+      }
+    });
   }
 
   if (document.readyState === "loading") {

@@ -91,7 +91,10 @@ articlesRouter.get("/:locale", async (req: Request, res: Response): Promise<void
   try {
     const articles = await prisma.article.findMany({
       where: { locale },
-      orderBy: { publishedAt: "desc" },
+      orderBy: [
+        { publishedAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
       take: limit,
       skip: offset,
       select: {

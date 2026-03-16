@@ -29,13 +29,17 @@ a{color:inherit;text-decoration:none}
 .topbar{
   position:sticky;top:0;z-index:100;
   background:var(--dark);
+  height:56px;
+  display:flex;align-items:center;justify-content:center;
+}
+.topbar-inner{
+  width:100%;max-width:1080px;
   padding:0 16px;
-  height:52px;
   display:flex;align-items:center;justify-content:space-between;
   gap:12px;
 }
 .logo{display:flex;align-items:center;gap:6px;flex-shrink:0}
-.logo-img{height:32px;display:block}
+.logo-img{height:44px;display:block;vertical-align:middle}
 
 /* Busca no topo — artigos do blog */
 .search-wrap{
@@ -83,6 +87,7 @@ a{color:inherit;text-decoration:none}
 @media(max-width:768px){
   .layout{grid-template-columns:1fr;padding:16px 12px;gap:24px}
   .sidebar{display:none}
+  .topbar-inner{padding:0 12px}
 }
 
 /* ── ARTICLE MAIN ─────────────────────────────── */
@@ -440,35 +445,6 @@ a{color:inherit;text-decoration:none}
 }
 .faq-item.open .faq-a{max-height:200px;padding:0 16px 14px}
 
-/* ── ARTIGOS RELACIONADOS ─────────────────────── */
-.related{margin:36px 0}
-.related-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.related-hdr h2{font-family:"Fraunces",serif;font-size:16px;color:var(--dark)}
-.tag-badge{
-  font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--terra);border:1px solid var(--terra);
-  padding:3px 8px;border-radius:20px;
-}
-.related-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;
-}
-@media(max-width:600px){.related-grid{grid-template-columns:1fr}}
-.rel-card{
-  border:1px solid var(--border);border-radius:var(--r-sm);
-  overflow:hidden;background:#fff;text-decoration:none;
-  display:flex;flex-direction:column;
-  transition:transform .25s,box-shadow .25s;
-}
-.rel-card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
-.rel-card-img{
-  height:72px;display:flex;align-items:center;justify-content:center;
-  font-size:32px;background:var(--bg2);
-}
-.rel-card-body{padding:10px 12px;flex:1;display:flex;flex-direction:column;gap:4px}
-.rel-card-cat{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--terra);font-weight:700}
-.rel-card-title{font-family:"Fraunces",serif;font-size:13px;color:var(--dark);line-height:1.35;flex:1}
-.rel-card-cta{font-size:11px;font-weight:700;color:var(--terra);margin-top:4px}
-
 /* ── SIDEBAR ──────────────────────────────────── */
 .sidebar{display:flex;flex-direction:column;gap:20px}
 .sb-card{
@@ -543,6 +519,7 @@ a{color:inherit;text-decoration:none}
 
 <!-- ── TOPBAR ─────────────────────────────────── -->
 <header class="topbar">
+  <div class="topbar-inner">
   <div class="logo">
     <img class="logo-img" src="/BLOG%20Logo.png" alt="BLOG meDIZ — O corpo fala. Nós traduzimos." />
   </div>
@@ -557,6 +534,7 @@ a{color:inherit;text-decoration:none}
     <button data-locale="pt" class="on">PT</button>
     <button data-locale="es">ES</button>
     <button data-locale="en">EN</button>
+  </div>
   </div>
 </header>
 
@@ -731,40 +709,6 @@ a{color:inherit;text-decoration:none}
     </div>
 
   </div><!-- .content -->
-
-  <!-- RELACIONADOS -->
-  <div class="related">
-    <div class="related-hdr">
-      <h2>Quem leu isso também explorou:</h2>
-      <span class="tag-badge">Ver mais</span>
-    </div>
-    <div class="related-grid">
-      <a class="rel-card" href="#">
-        <div class="rel-card-img">🦋</div>
-        <div class="rel-card-body">
-          <div class="rel-card-cat">Sistema Imune</div>
-          <div class="rel-card-title">Hipotireoidismo tem origem emocional?</div>
-          <div class="rel-card-cta">Ler artigo →</div>
-        </div>
-      </a>
-      <a class="rel-card" href="#">
-        <div class="rel-card-img">🛡️</div>
-        <div class="rel-card-body">
-          <div class="rel-card-cat">Sistema Imune</div>
-          <div class="rel-card-title">Doenças autoimunes e o conflito de identidade</div>
-          <div class="rel-card-cta">Ler artigo →</div>
-        </div>
-      </a>
-      <a class="rel-card" href="#">
-        <div class="rel-card-img">🗣️</div>
-        <div class="rel-card-body">
-          <div class="rel-card-cat">Sistema Imune</div>
-          <div class="rel-card-title">O que a tireoidite diz sobre a sua voz</div>
-          <div class="rel-card-cta">Ler artigo →</div>
-        </div>
-      </a>
-    </div>
-  </div>
 
 </main>
 

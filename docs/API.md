@@ -68,29 +68,48 @@ O n8n costuma preencher `Content-Type` automaticamente quando você escolhe "JSO
 
 ---
 
+## Fluxo de publicação — o que vem de onde
+
+| Origem | Campos | Descrição |
+|--------|--------|-----------|
+| **IA (via n8n)** | `title`, `content.mainContent`, `content.surprises`, `content.highlights`, `content.faq`, `content.hypothesis`, etc. | O que a IA gera e envia no `POST /api/articles`. |
+| **Painel admin** | `content.video`, `content.mindmap`, `content.podcast` | Adicionados **manualmente** na aba "Links de mídia" do painel. A IA **não** envia YouTube, podcast nem mapa mental. |
+| **Fixos no frontend** | Livro, PDF, ALINE | Sempre os mesmos em todos os artigos; não vêm do banco nem da IA. |
+
+**Resumo:** A IA envia título, texto principal, FAQ e demais blocos de conteúdo. Depois, no painel admin, você escolhe o artigo e preenche YouTube, podcast e mapa mental. Livro, PDF e ALINE são blocos fixos na página.
+
+**Seção "Últimos artigos":** Atualiza automaticamente quando um novo artigo entra — o frontend busca a lista na API a cada carregamento.
+
+---
+
 ## O que cada campo do body atualiza no blog
 
-Ao enviar o body do `POST /api/articles`, cada campo atualiza exatamente isto na página do artigo:
+### Campos enviados pela IA (POST /api/articles)
 
 | O que aparece no blog | Campo no body | Exemplo / formato |
 |----------------------|---------------|-------------------|
-| **Título** (ex.: "Diabetes Tipo 1 tem origem emocional? O que o pâncreas está tentando te dizer") | `title` | string |
-| **Autor** (ex.: "Prof. Paulo Barbosa") | `author` | string |
-| **Data de publicação** (ex.: "Fev 2026") | `publishedAt` | string ISO 8601 (ex.: `"2026-02-01T00:00:00.000Z"`) |
-| **Texto principal** — parágrafos, seções ("O que o pâncreas faz", "A hipótese emocional", "Padrões que aparecem com frequência" com a lista em tópicos), blockquotes, etc. | `content.mainContent` ou `content.body` | string (pode ser HTML) |
-| **Bloco "Isso vai te surpreender"** (caixa com borda laranja e o texto em destaque) | `content.surprises` | array de `{ "text": "..." }` (cada item = um bloco) |
-| **Citações em destaque** (bloco com borda lateral, ex.: "E se seu corpo não estivesse te atacando?") | `content.highlights` | array de `{ "text": "..." }` |
-| **Perguntas frequentes** (seção FAQ: pergunta + resposta) | `content.faq` | array de `{ "question": "Pergunta?", "answer": "Resposta." }` |
-| **Vídeo** (embed e miniatura) | `content.video` | `{ "embedUrl": "https://...", "thumbnailUrl": "https://...", "title": "..." }` |
-| **Mapa mental** | `content.mindmap` | `{ "imageUrl": "...", "caption": "..." }` |
-| **Podcast** (áudio) | `content.podcast` | `{ "audioUrl": "...", "title": "...", "eyebrow": "..." }` |
-| **Artigos relacionados** | `content.relatedSlugs` | array de slugs (ex.: `["outro-artigo"]`) |
-| **Categoria** (tag exibida na listagem) | `categoryTag` | string (ex.: "Sistema Imune e Geral") |
+| **Título** | `title` | string |
+| **Autor** | `author` | string |
+| **Data de publicação** | `publishedAt` | string ISO 8601 |
+| **Texto principal** | `content.mainContent` ou `content.body` | string (HTML) |
+| **Bloco "Isso vai te surpreender"** | `content.surprises` | array de `{ "text": "..." }` |
+| **Citações em destaque** | `content.highlights` | array de `{ "text": "..." }` |
+| **A hipótese emocional** | `content.hypothesis` | string (HTML) |
+| **Padrões que aparecem com frequência** | `content.patterns` | array de strings |
+| **Perguntas frequentes** | `content.faq` | array de `{ "question": "...", "answer": "..." }` |
+| **Categoria** | `categoryTag` | string |
 
-**Resumo para o que você citou:**  
-- **Título** → `title`  
-- **Perguntas frequentes** → `content.faq` (array de `question` + `answer`)  
-- **Demais campos dos prints** → `content.mainContent` (todo o texto em HTML, incluindo "Padrões que aparecem com frequência" e as listas), `content.surprises` (blocos "Isso vai te surpreender") e `content.highlights` (citações em destaque).
+### Campos adicionados manualmente no painel admin (PATCH)
+
+| O que aparece no blog | Campo | Como preencher |
+|----------------------|-------|----------------|
+| **Vídeo (YouTube)** | `content.video` | Aba "Links de mídia" → selecione o artigo → preencha URL do embed |
+| **Mapa mental** | `content.mindmap` | Aba "Links de mídia" → URL da imagem e legenda |
+| **Podcast** | `content.podcast` | Aba "Links de mídia" → URL do áudio, título, eyebrow |
+
+### Blocos fixos (não vêm da API)
+
+Livro ("O Corpo Diz"), PDF Diabetes, ALINE — sempre os mesmos em todos os artigos.
 
 ---
 
@@ -107,12 +126,19 @@ Peça na **prompt** que a IA responda em JSON com exatamente estes campos (um ob
   "locale": "pt",
   "slug": "slug-do-artigo",
   "title": "Título do artigo",
-  "author": "Nome do autor",
+  "categoryTag": "Sistema Imune e Geral",
+  "author": "Prof. Paulo Barbosa",
   "publishedAt": "2026-02-01T12:00:00.000Z",
   "content": {
-    "mainContent": "<p>Parágrafos e seções em HTML...</p>",
-    "surprises": [{ "text": "Primeiro bloco surpreender" }, { "text": "Segundo bloco" }],
+    "mainContent": "<p>Parágrafos e seções em HTML. Use h2 com id para seções no índice.</p><h2 id=\"intro\">Introdução</h2><p>...</p>",
+    "surprises": [{ "text": "Bloco 'Isso vai te surpreender'" }],
     "highlights": [{ "text": "Citação em destaque" }],
+    "hypothesis": "<p>A hipótese emocional do artigo — HTML.</p>",
+    "patterns": [
+      "Padrão 1 específico do tema",
+      "Padrão 2",
+      "Padrão 3"
+    ],
     "faq": [
       { "question": "Pergunta 1?", "answer": "Resposta 1." },
       { "question": "Pergunta 2?", "answer": "Resposta 2." }
@@ -121,9 +147,12 @@ Peça na **prompt** que a IA responda em JSON com exatamente estes campos (um ob
 }
 ```
 
+**Não envie** `video`, `mindmap` nem `podcast` — adicionados manualmente no painel admin.  
+**Opcionais:** `hypothesis`, `patterns` — se omitidos, usam valores padrão.
+
 No n8n: use o nó que chama a IA e, em seguida, um nó **Code** ou **Set** que pega `$json.response` (ou o campo onde está o JSON) e usa como body da requisição HTTP para `POST /api/articles`. Se a IA devolver o JSON dentro de um bloco markdown (ex.: entre \`\`\`json ... \`\`\`), use um passo antes para extrair só o JSON (regex ou Code).
 
-**A API está preparada para receber esse JSON:** o `POST /api/articles` exige apenas `locale`, `slug`, `title` e `content` (objeto). Qualquer campo dentro de `content` (mainContent, surprises, highlights, faq, video, mindmap, podcast, etc.) é aceito e salvo no banco; não é necessário enviar todos os campos — só os que a IA preencher.
+**A API aceita esse JSON:** o `POST /api/articles` exige apenas `locale`, `slug`, `title` e `content` (objeto). A IA deve enviar só: `mainContent`, `surprises`, `highlights`, `faq` e demais blocos de texto. Não é necessário enviar `video`, `mindmap` ou `podcast`.
 
 ### Opção 2 — A IA devolve texto ou markdown com seções
 
@@ -139,7 +168,7 @@ No n8n: depois do nó da IA, use um nó **Code** (JavaScript) que:
 
 1. Lê o texto completo da resposta.
 2. Divide por esses títulos (ex.: `split("## TÍTULO")`, etc.).
-3. Monta o objeto `{ locale, slug, title, content: { mainContent, surprises, highlights, faq } }`.
+3. Monta o objeto `{ locale, slug, title, content: { mainContent, surprises, highlights, faq } }` (sem video, mindmap, podcast).
 4. Define esse objeto no output para o próximo nó (HTTP Request) usar como body.
 
 Exemplo de prompt para a IA (adaptável):  
@@ -174,20 +203,20 @@ Cria um novo artigo ou atualiza um existente para o par `locale` + `slug`.
 | `publishedAt` | string (ISO 8601) | Não | Data de publicação. |
 | `content` | objeto | Sim | Blocos do conteúdo (ver tabela abaixo). |
 
-**Objeto `content`:**
+**Objeto `content` (o que a IA envia):**
 
 | Campo | Tipo | Descrição |
 |-------|------|-----------|
-| `mainContent` ou `body` | string | Texto principal (HTML ou texto; formato flexível). |
+| `mainContent` ou `body` | string | Texto principal (HTML; use `h2 id="..."` para seções no índice). |
 | `surprises` | array de `{ text: string }` | Blocos "Isso vai te surpreender". |
-| `video` | `{ embedUrl?: string, title?: string }` | Vídeo (ex.: embed do YouTube). |
-| `mindmap` | `{ imageUrl?: string, caption?: string }` | Mapa mental. |
-| `podcast` | `{ audioUrl?: string, title?: string, eyebrow?: string }` | Player de podcast. |
 | `highlights` | array de `{ text: string }` | Citações em destaque. |
+| `hypothesis` | string (HTML) | Seção "A hipótese emocional — o que pode estar por trás". |
+| `patterns` | array de string | Lista de padrões recorrentes (se omitido, usa lista padrão). |
 | `faq` | array de `{ question: string, answer: string }` | Perguntas frequentes. |
-| `relatedSlugs` | array de string | Slugs de artigos relacionados. |
 
-**Exemplo de body:**
+**Campos opcionais (adicionados via painel admin, não pela IA):** `video`, `mindmap`, `podcast` — ver seção [Painel admin](#5-painel-admin-vídeo-mapa-mental-podcast).
+
+**Exemplo de body (envio da IA):**
 
 ```json
 {
@@ -200,15 +229,15 @@ Cria um novo artigo ou atualiza um existente para o par `locale` + `slug`.
   "content": {
     "mainContent": "<p>Texto principal do artigo...</p>",
     "surprises": [{ "text": "O Diabetes Tipo 1 não é uma doença do açúcar..." }],
-    "video": { "embedUrl": "https://www.youtube.com/embed/xxx", "title": "Vídeo" },
-    "mindmap": { "imageUrl": "https://exemplo.com/img.png", "caption": "Legenda" },
-    "podcast": { "audioUrl": "https://exemplo.com/audio.m4a", "title": "Episódio", "eyebrow": "Podcast" },
     "highlights": [{ "text": "Citação em destaque" }],
-    "faq": [{ "question": "Pergunta?", "answer": "Resposta." }],
-    "relatedSlugs": ["outro-artigo"]
+    "hypothesis": "<p>A hipótese emocional...</p>",
+    "patterns": ["Padrão 1", "Padrão 2", "Padrão 3"],
+    "faq": [{ "question": "Pergunta?", "answer": "Resposta." }]
   }
 }
 ```
+
+YouTube, podcast e mapa mental são preenchidos depois, no painel admin.
 
 **Respostas:**
 

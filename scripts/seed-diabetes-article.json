@@ -1,0 +1,60 @@
+{
+  "locale": "pt",
+  "slug": "diabetes-tipo-1-origem-emocional",
+  "title": "Diabetes Tipo 1 tem origem emocional?\nO que o pâncreas está tentando te dizer",
+  "categoryTag": "Sistema Imune e Geral",
+  "author": "Prof. Paulo Barbosa",
+  "publishedAt": "2025-02-23T12:00:00.000Z",
+  "content": {
+    "mainContent": "<p>Você ou alguém que ama vive com Diabetes Tipo 1. Já sabe tudo sobre insulina, glicemia, lancetas, carboidratos. O corpo virou uma equação que precisa de solução a cada refeição.</p><p>Mas existe uma pergunta que quase ninguém faz — e que pode mudar completamente como você entende essa condição.</p><h2 id=\"pancreas\">O que o pâncreas faz — e o que poucos sabem</h2><p>O pâncreas é o porteiro do metabolismo. Ele decide o que o corpo consegue usar do que entra. No Diabetes Tipo 1, esse porteiro não falhou por desgaste — foi eliminado pelo próprio exército interno. E o processo começa meses antes do diagnóstico, em silêncio.</p>",
+    "surprises": [
+      {
+        "text": "O Diabetes Tipo 1 não é uma doença do açúcar. É uma doença autoimune. O que falhou não foi o pâncreas por acidente — foi o seu próprio sistema de defesa que atacou as células responsáveis pela \"doçura de vida\". O corpo declarou guerra contra si mesmo."
+      }
+    ],
+    "video": {
+      "embedUrl": "https://www.youtube.com/embed/9eq88NqYlJ4?rel=0&modestbranding=1",
+      "title": "Diabetes Tipo 1 e origem emocional"
+    },
+    "mindmap": {
+      "imageUrl": "https://exemplo.com/mapa-mental-diabetes.png",
+      "caption": "🧠 Mapa Mental — Conexões Emocionais do Pâncreas"
+    },
+    "podcast": {
+      "audioUrl": "https://exemplo.com/podcast-diabetes.m4a",
+      "title": "A guerra interna do Diabetes Tipo 1",
+      "eyebrow": "Podcast"
+    },
+    "highlights": [
+      {
+        "text": "E se seu corpo não estivesse te atacando? E se ele estivesse tentando te mostrar onde você aprendeu que não merecia receber?"
+      }
+    ],
+    "hypothesis": "<p>O que você vai ler não é diagnóstico. É uma hipótese do Sentido Biológico — baseada em anos de pesquisa do Prof. Paulo Barbosa, documentada no livro <em>O Corpo Diz</em>.</p><p>O pâncreas, em termos simbólicos, governa a <strong>doçura de vida</strong>: a capacidade de receber o que está disponível e transformar isso em energia.</p><p>Em doenças autoimunes, observa-se com frequência um padrão de ambivalência sobre o que é seguro receber — amor, cuidado, pertencimento. Uma hipótese exploratória: quando o sistema emocional não consegue distinguir o que é seguro do que é ameaça, o sistema imunológico pode espelhar essa confusão no campo biológico.</p>",
+    "patterns": [
+      "Ambiente familiar imprevisível nos anos de formação — amor disponível, mas com condições",
+      "Aprendizado precoce de que pedir cuidado é arriscado",
+      "Transição abrupta de contexto no período próximo ao diagnóstico",
+      "Conflito intenso entre querer pertencer e sentir que pertencer é perigoso"
+    ],
+    "faq": [
+      {
+        "question": "Diabetes Tipo 1 pode ter causa emocional?",
+        "answer": "A medicina classifica o DM1 como autoimune de causa desconhecida. O que observamos é que por trás de muitos diagnósticos há um momento de conflito emocional intenso — uma transição, uma ruptura, um momento em que o corpo entrou em alerta máximo."
+      },
+      {
+        "question": "Por que o sistema imune atacaria o próprio corpo?",
+        "answer": "Uma hipótese do Sentido Biológico: quando a pessoa não consegue distinguir o que é seguro do que é ameaça no campo emocional, o corpo pode espelhar essa confusão. O sistema imunológico perde a capacidade de distinguir o próprio do estranho."
+      },
+      {
+        "question": "O trabalho emocional pode ajudar no DM1?",
+        "answer": "O trabalho emocional não substitui a insulina. Mas muitos pacientes relatam que ao acessar e liberar os conflitos de origem, a regulação da glicemia fica mais estável e a relação com a condição se transforma completamente."
+      }
+    ],
+    "relatedSlugs": [
+      "ansiedade-origem-emocional",
+      "insônia-origem-emocional",
+      "estresse-cronico-origem-emocional"
+    ]
+  }
+}
