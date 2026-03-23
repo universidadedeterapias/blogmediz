@@ -296,12 +296,7 @@
   }
 
   function fillLatestArticles(locale) {
-    var wrap = document.getElementById("latest-articles");
     var sb = document.getElementById("sidebar-latest-list");
-    if (wrap) {
-      wrap.innerHTML = "<p style='color:var(--mid);font-size:14px;'>Carregando…</p>";
-      wrap.style.display = "block";
-    }
     if (sb) {
       sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Carregando…</li>";
     }
@@ -312,23 +307,10 @@
       })
       .then(function (list) {
         if (!Array.isArray(list) || list.length === 0) {
-          if (wrap) {
-            wrap.innerHTML = "";
-            wrap.style.display = "none";
-          }
           if (sb) sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Nenhum artigo cadastrado ainda.</li>";
           return;
         }
-        var top3 = list.slice(0, 3);
         var top10 = list.slice(0, 10);
-        if (wrap) {
-          var html = "<h2 style='font-family: Fraunces, serif; font-size: 1.25rem; margin-bottom: 12px; color: var(--dark);'>Últimos artigos</h2><ul class='latest-articles-list' style='list-style:none;padding:0;margin:0;'>";
-          top3.forEach(function (a) {
-            html += "<li style='margin-bottom: 8px;'><a href=\"/" + locale + "/" + encodeURIComponent(a.slug) + "\" style='color: var(--terra); text-decoration: none;'>" + escapeHtml(a.title) + "</a></li>";
-          });
-          html += "</ul>";
-          wrap.innerHTML = html;
-        }
         if (sb) {
           sb.innerHTML = top10.map(function (a) {
             return "<li><a href=\"/" + locale + "/" + encodeURIComponent(a.slug) + "\">" + escapeHtml(a.title) + "</a></li>";
@@ -336,10 +318,6 @@
         }
       })
       .catch(function (err) {
-        if (wrap) {
-          wrap.innerHTML = "<p style='font-size:14px;color:var(--light);'>Não foi possível carregar os artigos.</p>";
-          wrap.style.display = "block";
-        }
         if (sb) sb.innerHTML = "<li style='font-size:13px;color:var(--light);'>Não foi possível carregar os artigos.</li>";
       });
   }

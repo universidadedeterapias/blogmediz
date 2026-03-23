@@ -235,6 +235,17 @@
       font-family: inherit;
     }
     textarea { min-height: 120px; resize: vertical; }
+    textarea.tall { min-height: 280px; }
+    .mode-tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .mode-tabs button {
+      padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+      background: var(--bg2); color: var(--mid); cursor: pointer; font-size: 0.9rem;
+    }
+    .mode-tabs button.active { background: var(--terra); color: white; border-color: var(--terra); }
+    .array-item { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+    .array-item input, .array-item textarea { flex: 1; max-width: none; }
+    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+    .btn-outline { background: transparent; color: var(--terra); border: 1px solid var(--terra); }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--terra-lt);
@@ -304,7 +315,15 @@
         <nav>
           <button type="button" class="nav-item active" data-page="publish">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-            Publicar artigo
+            Publicar via IA
+          </button>
+          <button type="button" class="nav-item" data-page="publish-text">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            Publicar texto pronto
+          </button>
+          <button type="button" class="nav-item" data-page="edit">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            Editar artigo
           </button>
           <button type="button" class="nav-item" data-page="media">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -335,8 +354,139 @@
           <label for="publishSubject">Assunto</label>
           <textarea id="publishSubject" placeholder="Ex.: insônia e estresse crônico, ou temas que a IA deve abordar no artigo"></textarea>
           <p class="hint">O assunto é enviado ao agente de IA via n8n, que produz o artigo e publica.</p>
+          <div class="section">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="publishSchedule" style="width:auto;max-width:none;" />
+              <span>Agendar publicação</span>
+            </label>
+            <input type="datetime-local" id="publishScheduleAt" style="margin-top:8px;display:none;" />
+          </div>
           <button type="button" class="primary" id="publishBtn">Enviar para o n8n</button>
           <p id="publishStatus"></p>
+        </div>
+
+        <div id="page-publish-text" class="tab-panel">
+          <h2>Publicar texto pronto</h2>
+          <p class="hint">Cole o HTML completo, preencha os campos separados ou cole o JSON do artigo. Vídeo, mapa mental e podcast são adicionados em Links de mídia.</p>
+          <div class="mode-tabs">
+            <button type="button" class="mode-tab active" data-mode="html">HTML completo</button>
+            <button type="button" class="mode-tab" data-mode="fields">Campos separados</button>
+            <button type="button" class="mode-tab" data-mode="json">JSON</button>
+          </div>
+          <div id="ptFormFields">
+            <div class="two-cols">
+              <div>
+                <label for="ptLocale">Idioma</label>
+                <select id="ptLocale"><option value="pt">pt</option><option value="es">es</option><option value="en">en</option></select>
+              </div>
+              <div>
+                <label for="ptSlug">Slug</label>
+                <input type="text" id="ptSlug" placeholder="meu-artigo" />
+              </div>
+            </div>
+            <label for="ptTitle">Título</label>
+            <input type="text" id="ptTitle" placeholder="Título do artigo" />
+          </div>
+          <div id="ptModeHtml">
+            <label for="ptHtml">HTML completo</label>
+            <textarea id="ptHtml" class="tall" placeholder="Cole o HTML completo aqui (ver docs/MODELO_HTML_ARTIGO.md)"></textarea>
+          </div>
+          <div id="ptModeJson" style="display:none;">
+            <label for="ptJson">JSON do artigo</label>
+            <textarea id="ptJson" class="tall" placeholder='{"locale":"pt","slug":"meu-artigo","title":"Título","content":{"mainContent":"<p>...</p>","surprises":[{"text":"..."}],"highlights":[{"text":"..."}],"faq":[{"question":"...","answer":"..."}]}}'></textarea>
+            <p class="hint" style="margin-top:6px;">Use locale, slug, title e content (mainContent, surprises, highlights, hypothesis, patterns, faq). Opcional: scheduledAt (ISO 8601).</p>
+          </div>
+          <div id="ptModeFields" style="display:none;">
+            <div class="section">
+              <strong>Texto principal</strong>
+              <textarea id="ptMainContent" class="tall" placeholder="<p>...</p><h2 id=\"intro\">...</h2>"></textarea>
+            </div>
+            <div class="section">
+              <strong>Isso vai te surpreender</strong>
+              <div id="ptSurprisesList"></div>
+              <button type="button" class="btn-sm btn-outline" id="ptAddSurprise">+ Adicionar</button>
+            </div>
+            <div class="section">
+              <strong>Citações em destaque</strong>
+              <div id="ptHighlightsList"></div>
+              <button type="button" class="btn-sm btn-outline" id="ptAddHighlight">+ Adicionar</button>
+            </div>
+            <div class="section">
+              <strong>Hipótese emocional</strong>
+              <textarea id="ptHypothesis" placeholder="<p>...</p>"></textarea>
+            </div>
+            <div class="section">
+              <strong>Padrões</strong>
+              <div id="ptPatternsList"></div>
+              <button type="button" class="btn-sm btn-outline" id="ptAddPattern">+ Adicionar</button>
+            </div>
+            <div class="section">
+              <strong>FAQ</strong>
+              <div id="ptFaqList"></div>
+              <button type="button" class="btn-sm btn-outline" id="ptAddFaq">+ Adicionar pergunta</button>
+            </div>
+          </div>
+          <div id="ptScheduleSection" class="section">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="ptSchedule" style="width:auto;max-width:none;" />
+              <span>Agendar publicação</span>
+            </label>
+            <input type="datetime-local" id="ptScheduleAt" style="margin-top:8px;display:none;" />
+          </div>
+          <button type="button" class="primary" id="ptPublishBtn">Publicar</button>
+          <p id="ptStatus"></p>
+        </div>
+
+        <div id="page-edit" class="tab-panel">
+          <h2>Editar artigo</h2>
+          <label for="editArticleSelect">Artigo</label>
+          <select id="editArticleSelect"><option value="">Carregando…</option></select>
+          <p id="editLoadError" class="error"></p>
+          <div id="editForm" style="display:none;">
+            <div class="mode-tabs">
+              <button type="button" class="edit-mode-tab active" data-mode="html">HTML completo</button>
+              <button type="button" class="edit-mode-tab" data-mode="fields">Campos separados</button>
+            </div>
+            <div id="editModeHtml">
+              <label for="editHtml">HTML completo</label>
+              <textarea id="editHtml" class="tall"></textarea>
+            </div>
+            <div id="editModeFields" style="display:none;">
+              <div class="section">
+                <strong>Texto principal</strong>
+                <textarea id="editMainContent" class="tall"></textarea>
+              </div>
+              <div class="section">
+                <strong>Isso vai te surpreender</strong>
+                <div id="editSurprisesList"></div>
+                <button type="button" class="btn-sm btn-outline" id="editAddSurprise">+ Adicionar</button>
+              </div>
+              <div class="section">
+                <strong>Citações em destaque</strong>
+                <div id="editHighlightsList"></div>
+                <button type="button" class="btn-sm btn-outline" id="editAddHighlight">+ Adicionar</button>
+              </div>
+              <div class="section">
+                <strong>Hipótese emocional</strong>
+                <textarea id="editHypothesis"></textarea>
+              </div>
+              <div class="section">
+                <strong>Padrões</strong>
+                <div id="editPatternsList"></div>
+                <button type="button" class="btn-sm btn-outline" id="editAddPattern">+ Adicionar</button>
+              </div>
+              <div class="section">
+                <strong>FAQ</strong>
+                <div id="editFaqList"></div>
+                <button type="button" class="btn-sm btn-outline" id="editAddFaq">+ Adicionar pergunta</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:20px;">
+              <button type="button" class="primary" id="editSaveBtn">Salvar alterações</button>
+              <button type="button" class="primary btn-outline" id="editCorrectBtn">Corrigir via webhook</button>
+            </div>
+            <p id="editStatus"></p>
+          </div>
         </div>
 
         <div id="page-media" class="tab-panel">
@@ -608,6 +758,12 @@
       saveStatus.className = "success";
     });
 
+    const publishSchedule = document.getElementById("publishSchedule");
+    const publishScheduleAt = document.getElementById("publishScheduleAt");
+    publishSchedule.addEventListener("change", () => {
+      publishScheduleAt.style.display = publishSchedule.checked ? "block" : "none";
+    });
+
     publishBtn.addEventListener("click", async () => {
       publishStatus.textContent = "";
       publishStatus.className = "";
@@ -621,6 +777,9 @@
         return;
       }
       const payload = { locale, slug: slug || undefined, title: title || undefined, subject };
+      if (publishSchedule.checked && publishScheduleAt.value) {
+        payload.scheduledAt = new Date(publishScheduleAt.value).toISOString();
+      }
       publishStatus.textContent = "Enviando para o n8n…";
       const r = await api("/publish", {
         method: "POST",
@@ -635,6 +794,386 @@
       }
       publishStatus.textContent = "Artigo enviado para o n8n com sucesso.";
       publishStatus.className = "success";
+    });
+
+    // --- Publicar texto pronto ---
+    function parseHtmlToContent(html) {
+      if (!html || !html.trim()) return null;
+      const div = document.createElement("div");
+      div.innerHTML = html.trim();
+      const content = {};
+      const firstBody = div.querySelector(".content-body");
+      if (firstBody) content.mainContent = firstBody.innerHTML.trim();
+      const surprises = [];
+      div.querySelectorAll(".surprise").forEach((el) => {
+        const p = el.querySelector("p");
+        if (p) surprises.push({ text: p.textContent.trim() });
+      });
+      if (surprises.length) content.surprises = surprises;
+      const highlights = [];
+      div.querySelectorAll(".hl p").forEach((p) => highlights.push({ text: p.textContent.replace(/^"|"$/g, "").trim() }));
+      if (highlights.length) content.highlights = highlights;
+      const hipH2 = div.querySelector("h2[id='hipotese']");
+      if (hipH2) {
+        const next = hipH2.nextElementSibling;
+        if (next && next.classList.contains("content-body")) content.hypothesis = next.innerHTML.trim();
+      }
+      const padH2 = div.querySelector("h2[id='padroes']");
+      if (padH2) {
+        const ul = div.querySelector("ul.patterns-list");
+        if (ul) content.patterns = [...ul.querySelectorAll("li")].map((li) => li.textContent.trim());
+      }
+      const faqItems = div.querySelectorAll(".faq-item");
+      if (faqItems.length) {
+        content.faq = [...faqItems].map((item) => ({
+          question: (item.querySelector(".faq-q") || {}).textContent?.trim() || "",
+          answer: (item.querySelector(".faq-a") || {}).textContent?.trim() || "",
+        })).filter((f) => f.question || f.answer);
+      }
+      if (!content.mainContent && firstBody) content.mainContent = firstBody.innerHTML.trim();
+      if (!content.mainContent) content.mainContent = div.querySelector(".content-body")?.innerHTML?.trim() || "";
+      return Object.keys(content).length ? content : null;
+    }
+
+    function buildContentFromFields(main, surprises, highlights, hypothesis, patterns, faq) {
+      const c = {};
+      if (main?.trim()) c.mainContent = main.trim();
+      if (surprises?.length) c.surprises = surprises.filter(Boolean).map((t) => ({ text: t }));
+      if (highlights?.length) c.highlights = highlights.filter(Boolean).map((t) => ({ text: t }));
+      if (hypothesis?.trim()) c.hypothesis = hypothesis.trim();
+      if (patterns?.length) c.patterns = patterns.filter(Boolean);
+      if (faq?.length) c.faq = faq.filter((f) => f.question || f.answer);
+      return c;
+    }
+
+    function createArrayInput(containerId, placeholder) {
+      const container = document.getElementById(containerId);
+      return {
+        add: (val = "") => {
+          const div = document.createElement("div");
+          div.className = "array-item";
+          const input = document.createElement("input");
+          input.type = "text";
+          input.placeholder = placeholder;
+          input.value = val;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn-sm";
+          btn.textContent = "Remover";
+          btn.onclick = () => div.remove();
+          div.appendChild(input);
+          div.appendChild(btn);
+          container.appendChild(div);
+          return input;
+        },
+        getValues: () => [...container.querySelectorAll("input")].map((i) => i.value.trim()).filter(Boolean),
+        clear: () => { container.innerHTML = ""; },
+      };
+    }
+
+    function createFaqInput(containerId) {
+      const container = document.getElementById(containerId);
+      return {
+        add: (q = "", a = "") => {
+          const div = document.createElement("div");
+          div.className = "array-item";
+          div.style.flexDirection = "column";
+          const qIn = document.createElement("input");
+          qIn.placeholder = "Pergunta";
+          qIn.value = q;
+          const aIn = document.createElement("textarea");
+          aIn.placeholder = "Resposta";
+          aIn.rows = 2;
+          aIn.value = a;
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "btn-sm";
+          btn.textContent = "Remover";
+          btn.onclick = () => div.remove();
+          div.appendChild(qIn);
+          div.appendChild(aIn);
+          div.appendChild(btn);
+          container.appendChild(div);
+        },
+        getValues: () => [...container.querySelectorAll(".array-item")].map((d) => ({
+          question: (d.querySelector("input") || {}).value?.trim() || "",
+          answer: (d.querySelector("textarea") || {}).value?.trim() || "",
+        })).filter((f) => f.question || f.answer),
+        clear: () => { container.innerHTML = ""; },
+      };
+    }
+
+    const ptSurprises = createArrayInput("ptSurprisesList", "Texto do bloco surpresa");
+    const ptHighlights = createArrayInput("ptHighlightsList", "Citação");
+    const ptPatterns = createArrayInput("ptPatternsList", "Padrão");
+    const ptFaq = createFaqInput("ptFaqList");
+
+    document.getElementById("ptAddSurprise").onclick = () => ptSurprises.add();
+    document.getElementById("ptAddHighlight").onclick = () => ptHighlights.add();
+    document.getElementById("ptAddPattern").onclick = () => ptPatterns.add();
+    document.getElementById("ptAddFaq").onclick = () => ptFaq.add();
+
+    document.querySelectorAll("#page-publish-text .mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#page-publish-text .mode-tab").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const mode = btn.dataset.mode;
+        const isJson = mode === "json";
+        document.getElementById("ptModeHtml").style.display = mode === "html" ? "block" : "none";
+        document.getElementById("ptModeJson").style.display = isJson ? "block" : "none";
+        document.getElementById("ptModeFields").style.display = mode === "fields" ? "block" : "none";
+        document.getElementById("ptFormFields").style.display = isJson ? "none" : "block";
+        document.getElementById("ptScheduleSection").style.display = isJson ? "none" : "block";
+      });
+    });
+
+    const ptSchedule = document.getElementById("ptSchedule");
+    const ptScheduleAt = document.getElementById("ptScheduleAt");
+    ptSchedule.addEventListener("change", () => { ptScheduleAt.style.display = ptSchedule.checked ? "block" : "none"; });
+
+    document.getElementById("ptPublishBtn").addEventListener("click", async () => {
+      const status = document.getElementById("ptStatus");
+      status.textContent = "";
+      status.className = "";
+      const locale = document.getElementById("ptLocale").value || "pt";
+      const slug = document.getElementById("ptSlug").value.trim();
+      const title = document.getElementById("ptTitle").value.trim();
+      const mode = document.querySelector("#page-publish-text .mode-tab.active").dataset.mode;
+      let payload;
+      if (mode === "json") {
+        const raw = document.getElementById("ptJson").value.trim();
+        if (!raw) {
+          status.textContent = "Cole o JSON do artigo.";
+          status.className = "error";
+          return;
+        }
+        try {
+          payload = JSON.parse(raw);
+        } catch (e) {
+          status.textContent = "JSON inválido: " + (e.message || "erro de sintaxe");
+          status.className = "error";
+          return;
+        }
+        const pl = payload.locale || "";
+        const ps = payload.slug || "";
+        if (!pl || !["pt", "es", "en"].includes(pl)) {
+          status.textContent = "JSON deve ter locale (pt, es ou en).";
+          status.className = "error";
+          return;
+        }
+        if (!ps.trim()) {
+          status.textContent = "JSON deve ter slug.";
+          status.className = "error";
+          return;
+        }
+        const cnt = payload.content;
+        if (!cnt || typeof cnt !== "object" || (typeof cnt.mainContent !== "string" && typeof cnt.body !== "string")) {
+          status.textContent = "JSON deve ter content com mainContent ou body.";
+          status.className = "error";
+          return;
+        }
+        const parsed = payload;
+        payload = { locale: pl, slug: ps.trim(), title: (parsed.title || ps.replace(/-/g, " ")).trim(), content: cnt };
+        if (parsed.scheduledAt) payload.scheduledAt = new Date(parsed.scheduledAt).toISOString();
+      } else {
+        if (!slug) {
+          status.textContent = "Preencha o slug.";
+          status.className = "error";
+          return;
+        }
+        let content;
+        if (mode === "html") {
+          const html = document.getElementById("ptHtml").value.trim();
+          content = parseHtmlToContent(html);
+          if (!content || !content.mainContent) {
+            status.textContent = "Cole um HTML válido com conteúdo (ver docs/MODELO_HTML_ARTIGO.md).";
+            status.className = "error";
+            return;
+          }
+        } else {
+          content = buildContentFromFields(
+            document.getElementById("ptMainContent").value,
+            ptSurprises.getValues(),
+            ptHighlights.getValues(),
+            document.getElementById("ptHypothesis").value,
+            ptPatterns.getValues(),
+            ptFaq.getValues()
+          );
+          if (!content.mainContent) {
+            status.textContent = "Preencha o texto principal.";
+            status.className = "error";
+            return;
+          }
+        }
+        payload = { locale, slug, title: title || slug.replace(/-/g, " "), content };
+        if (ptSchedule.checked && ptScheduleAt.value) payload.scheduledAt = new Date(ptScheduleAt.value).toISOString();
+      }
+      status.textContent = "Publicando…";
+      const r = await api("/publish-text", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        status.textContent = data.error || "Erro ao publicar.";
+        status.className = "error";
+        return;
+      }
+      status.textContent = "Publicado com sucesso.";
+      status.className = "success";
+      loadArticles();
+    });
+
+    // --- Editar artigo ---
+    const editSurprises = createArrayInput("editSurprisesList", "Texto");
+    const editHighlights = createArrayInput("editHighlightsList", "Citação");
+    const editPatterns = createArrayInput("editPatternsList", "Padrão");
+    const editFaq = createFaqInput("editFaqList");
+    document.getElementById("editAddSurprise").onclick = () => editSurprises.add();
+    document.getElementById("editAddHighlight").onclick = () => editHighlights.add();
+    document.getElementById("editAddPattern").onclick = () => editPatterns.add();
+    document.getElementById("editAddFaq").onclick = () => editFaq.add();
+
+    let currentEditArticle = null;
+
+    document.querySelectorAll("#page-edit .edit-mode-tab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll("#page-edit .edit-mode-tab").forEach((b) => b.classList.remove("active"));
+        btn.classList.add("active");
+        const isHtml = btn.dataset.mode === "html";
+        document.getElementById("editModeHtml").style.display = isHtml ? "block" : "none";
+        document.getElementById("editModeFields").style.display = isHtml ? "none" : "block";
+      });
+    });
+
+    async function loadEditArticles() {
+      const sel = document.getElementById("editArticleSelect");
+      sel.innerHTML = "<option value=''>Carregando…</option>";
+      const r = await api("/articles");
+      if (!r.ok) {
+        sel.innerHTML = "<option value=''>—</option>";
+        return;
+      }
+      const list = await r.json();
+      sel.innerHTML = "<option value=''>Selecione um artigo</option>" +
+        list.map((a) => `<option value="${a.locale}|${a.slug}">${a.locale} — ${a.title}</option>`).join("");
+    }
+
+    function contentToHtml(c) {
+      if (!c) return "";
+      const parts = [];
+      if (c.mainContent || c.body) parts.push("<div class=\"content-body\">" + (c.mainContent || c.body || "") + "</div>");
+      (c.surprises || []).forEach((s) => {
+        const t = typeof s === "string" ? s : (s?.text || "");
+        parts.push("<div class=\"surprise\"><div class=\"tag\">💡 Isso vai te surpreender</div><p>" + t + "</p></div>");
+      });
+      (c.highlights || []).forEach((h) => {
+        const t = typeof h === "string" ? h : (h?.text || "");
+        parts.push("<div class=\"hl\"><p>\"" + t + "\"</p></div>");
+      });
+      if (c.hypothesis) parts.push("<h2 id=\"hipotese\">A hipótese emocional — o que pode estar por trás</h2><div class=\"content-body\">" + c.hypothesis + "</div>");
+      const pats = c.patterns || [];
+      parts.push("<h2 id=\"padroes\">Padrões que aparecem com frequência</h2><p>Uma hipótese do Sentido Biológico — sem confirmação científica estabelecida — sugere que esses padrões aparecem com recorrência em pessoas com doenças autoimunes:</p><ul class=\"patterns-list\" style=\"padding-left:20px;margin-bottom:18px;color:var(--mid)\">" + pats.map((p) => "<li style=\"margin-bottom:8px\">" + p + "</li>").join("") + "</ul>");
+      if (c.faq && c.faq.length) {
+        parts.push("<div class=\"faq\" id=\"faq\"><h2>Perguntas frequentes</h2>");
+        c.faq.forEach((f) => parts.push("<div class=\"faq-item\"><div class=\"faq-q\">" + (f.question || "") + "</div><div class=\"faq-a\">" + (f.answer || "") + "</div></div>"));
+        parts.push("</div>");
+      }
+      return parts.join("");
+    }
+
+    document.getElementById("editArticleSelect").addEventListener("change", async () => {
+      const val = document.getElementById("editArticleSelect").value;
+      document.getElementById("editForm").style.display = val ? "block" : "none";
+      document.getElementById("editLoadError").textContent = "";
+      if (!val) return;
+      const [locale, slug] = val.split("|");
+      const r = await api(`/articles/${locale}/${slug}`);
+      if (!r.ok) {
+        document.getElementById("editLoadError").textContent = "Falha ao carregar.";
+        return;
+      }
+      currentEditArticle = await r.json();
+      const c = currentEditArticle.content || {};
+      document.getElementById("editHtml").value = contentToHtml(c);
+      document.getElementById("editMainContent").value = c.mainContent || c.body || "";
+      editSurprises.clear();
+      (c.surprises || []).forEach((s) => editSurprises.add(typeof s === "string" ? s : s?.text || ""));
+      editHighlights.clear();
+      (c.highlights || []).forEach((h) => editHighlights.add(typeof h === "string" ? h : h?.text || ""));
+      document.getElementById("editHypothesis").value = c.hypothesis || "";
+      editPatterns.clear();
+      (c.patterns || []).forEach((p) => editPatterns.add(String(p)));
+      editFaq.clear();
+      (c.faq || []).forEach((f) => editFaq.add(f.question || "", f.answer || ""));
+    });
+
+    document.getElementById("editSaveBtn").addEventListener("click", async () => {
+      if (!currentEditArticle) return;
+      const status = document.getElementById("editStatus");
+      status.textContent = "";
+      status.className = "";
+      const { locale, slug } = currentEditArticle;
+      let content;
+      const isHtml = document.querySelector("#page-edit .edit-mode-tab.active").dataset.mode === "html";
+      if (isHtml) {
+        const parsed = parseHtmlToContent(document.getElementById("editHtml").value);
+        if (!parsed) {
+          status.textContent = "HTML inválido.";
+          status.className = "error";
+          return;
+        }
+        content = { ...(currentEditArticle.content || {}), ...parsed };
+      } else {
+        content = { ...(currentEditArticle.content || {}), ...buildContentFromFields(
+          document.getElementById("editMainContent").value,
+          editSurprises.getValues(),
+          editHighlights.getValues(),
+          document.getElementById("editHypothesis").value,
+          editPatterns.getValues(),
+          editFaq.getValues()
+        )};
+      }
+      status.textContent = "Salvando…";
+      const r = await api(`/articles/${locale}/${slug}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content, title: currentEditArticle.title }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        status.textContent = data.error || "Erro ao salvar.";
+        status.className = "error";
+        return;
+      }
+      currentEditArticle = await r.json();
+      status.textContent = "Salvo.";
+      status.className = "success";
+    });
+
+    document.getElementById("editCorrectBtn").addEventListener("click", async () => {
+      if (!currentEditArticle) return;
+      const status = document.getElementById("editStatus");
+      status.textContent = "";
+      status.className = "";
+      status.textContent = "Enviando para o webhook…";
+      const r = await api("/correct", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: currentEditArticle.locale, slug: currentEditArticle.slug }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        status.textContent = data.error || "Erro ao enviar.";
+        status.className = "error";
+        return;
+      }
+      status.textContent = "Webhook disparado. O n8n processará a correção.";
+      status.className = "success";
+    });
+
+    document.querySelectorAll(".nav-item").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const page = btn.getAttribute("data-page");
+        if (page === "edit") loadEditArticles();
+      });
     });
   </script>
 </body>

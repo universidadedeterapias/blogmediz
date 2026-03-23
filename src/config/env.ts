@@ -16,6 +16,8 @@ export const env = {
   newsletterWebhookUrl: optional("NEWSLETTER_WEBHOOK_URL", ""),
   /** Webhook n8n para publicação manual de artigos via painel admin. */
   articlePublishWebhookUrl: optional("ARTICLE_PUBLISH_WEBHOOK_URL", ""),
+  /** Webhook n8n para correção de artigo (dispara agente com locale/slug). */
+  articleCorrectWebhookUrl: optional("ARTICLE_CORRECT_WEBHOOK_URL", ""),
   /** Webhook n8n para o chat da Aline (recebe mensagem e retorna resposta). */
   alineWebhookUrl: optional("ALINE_WEBHOOK_URL", ""),
   /** Segredo único para acesso ao painel admin (Bearer token retornado no login). */
@@ -28,6 +30,8 @@ export const env = {
   supabaseUrl: optional("SUPABASE_URL", ""),
   /** Chave service_role do Supabase — para upload no Storage. Obtenha em Settings → API. */
   supabaseServiceKey: optional("SUPABASE_SERVICE_KEY", ""),
+  /** Segredo para proteger a rota do Vercel Cron (publish-scheduled). */
+  cronSecret: optional("CRON_SECRET", ""),
 } as const;
 
 export function assertEnv(): void {

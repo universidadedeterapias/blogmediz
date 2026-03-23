@@ -82,7 +82,7 @@ adminRouter.get("/articles", async (_req: Request, res: Response): Promise<void>
   try {
     const articles = await prisma.article.findMany({
       orderBy: [{ locale: "asc" }, { slug: "asc" }],
-      select: { locale: true, slug: true, title: true },
+      select: { locale: true, slug: true, title: true, publishedAt: true, scheduledAt: true },
     });
     res.json(articles);
   } catch (e) {
@@ -117,7 +117,7 @@ adminRouter.get(
   }
 );
 
-/** POST /api/admin/publish — encaminha JSON de artigo para o webhook do n8n. */
+/** POST /api/admin/publish — encaminha JSON para o webhook n8n (subject, locale, slug, title, scheduledAt?). */
 adminRouter.post("/publish", async (req: Request, res: Response): Promise<void> => {
   if (!env.articlePublishWebhookUrl) {
     res.status(503).json({ error: "ARTICLE_PUBLISH_WEBHOOK_URL not configured" });
@@ -234,3 +234,144 @@ adminRouter.patch(
     }
   }
 );
+
+/** PUT /api/admin/articles/:locale/:slug — atualiza o artigo completo (incluindo content). */
+adminRouter.put(
+  "/articles/:locale/:slug",
+  async (req: Request, res: Response): Promise<void> => {
+    const locale = Array.isArray(req.params.locale) ? req.params.locale[0] : req.params.locale;
+    const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+    if (!locale || !slug || !isLocale(locale)) {
+      res.status(400).json({ error: "Invalid locale or slug" });
+      return;
+    }
+
+    const body = req.body as Record<string, unknown>;
+    const content = body.content as Record<string, unknown> | undefined;
+
+    if (!content || typeof content !== "object") {
+      res.status(400).json({ error: "content (object) is required" });
+      return;
+    }
+
+    try {
+      const article = await prisma.article.findUnique({
+        where: { locale_slug: { locale, slug } },
+      });
+      if (!article) {
+        res.status(404).json({ error: "Article not found" });
+        return;
+      }
+
+      const currentContent = (article.content as Record<string, unknown>) || {};
+      const nextContent = { ...currentContent, ...content };
+
+      const updateData: Record<string, unknown> = { content: nextContent };
+      if (body.title !== undefined) updateData.title = String(body.title);
+      if (body.categoryTag !== undefined) updateData.categoryTag = body.categoryTag ? String(body.categoryTag) : null;
+      if (body.author !== undefined) updateData.author = body.author ? String(body.author) : null;
+      if (body.publishedAt !== undefined) updateData.publishedAt = body.publishedAt ? new Date(body.publishedAt as string) : null;
+      if (body.scheduledAt !== undefined) updateData.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt as string) : null;
+
+      const updated = await prisma.article.update({
+        where: { locale_slug: { locale, slug } },
+        data: updateData as object,
+      });
+      res.json(updated);
+    } catch (e) {
+      console.error("Admin put article error:", e);
+      res.status(500).json({ error: "Failed to update article" });
+    }
+  }
+);
+
+/** POST /api/admin/publish-text — publica artigo com texto pronto (imediato ou agendado). */
+adminRouter.post("/publish-text", async (req: Request, res: Response): Promise<void> => {
+  const body = req.body as Record<string, unknown>;
+  const locale = typeof body.locale === "string" ? body.locale.trim() : "";
+  const slug = typeof body.slug === "string" ? body.slug.trim() : "";
+  const title = typeof body.title === "string" ? body.title.trim() : slug.replace(/-/g, " ");
+  const content = body.content as Record<string, unknown> | undefined;
+  const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt as string) : null;
+
+  if (!locale || !isLocale(locale) || !slug) {
+    res.status(400).json({ error: "locale (pt|es|en) and slug are required" });
+    return;
+  }
+
+  if (!content || typeof content !== "object") {
+    res.status(400).json({ error: "content (object) is required. Use mainContent or full structure." });
+    return;
+  }
+
+  const hasMainContent = typeof content.mainContent === "string" || typeof content.body === "string";
+  if (!hasMainContent) {
+    res.status(400).json({ error: "content.mainContent or content.body is required" });
+    return;
+  }
+
+  const publishedAt = scheduledAt ? null : new Date();
+
+  try {
+    const article = await prisma.article.upsert({
+      where: { locale_slug: { locale, slug } },
+      create: {
+        locale,
+        slug,
+        title,
+        content: content as object,
+        publishedAt,
+        scheduledAt,
+      },
+      update: {
+        title,
+        content: content as object,
+        publishedAt,
+        scheduledAt,
+      },
+    });
+    res.status(200).json(article);
+  } catch (e) {
+    console.error("Admin publish-text error:", e);
+    res.status(500).json({ error: "Failed to publish article" });
+  }
+});
+
+/** POST /api/admin/correct — dispara webhook de correção com locale e slug. */
+adminRouter.post("/correct", async (req: Request, res: Response): Promise<void> => {
+  if (!env.articleCorrectWebhookUrl) {
+    res.status(503).json({ error: "ARTICLE_CORRECT_WEBHOOK_URL not configured" });
+    return;
+  }
+
+  const body = req.body as Record<string, unknown>;
+  const locale = typeof body.locale === "string" ? body.locale.trim() : "";
+  const slug = typeof body.slug === "string" ? body.slug.trim() : "";
+
+  if (!locale || !isLocale(locale) || !slug) {
+    res.status(400).json({ error: "locale (pt|es|en) and slug are required" });
+    return;
+  }
+
+  const payload = { locale, slug, sessionId: getRequestId() };
+
+  try {
+    const forward = await fetch(env.articleCorrectWebhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!forward.ok) {
+      const text = await forward.text();
+      console.error("Admin correct webhook error:", forward.status, text);
+      res.status(502).json({ error: "Webhook request failed", status: forward.status });
+      return;
+    }
+
+    res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error("Admin correct webhook fetch error:", e);
+    res.status(502).json({ error: "Failed to call webhook" });
+  }
+});

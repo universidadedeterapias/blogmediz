@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import express from "express";
 import path from "node:path";
 import { adminRouter } from "./routes/admin.js";
+import { cronRouter } from "./routes/cron.js";
 import { uploadRouter } from "./routes/upload.js";
 import { alineRouter } from "./routes/aline.js";
 import { alineLeadRouter } from "./routes/aline-lead.js";
@@ -18,6 +19,7 @@ app.use("/api/newsletter", newsletterRouter);
 app.use("/api/aline-chat", alineRouter);
 app.use("/api/aline-lead", alineLeadRouter);
 app.use("/api/admin", adminRouter);
+app.use("/api/cron", cronRouter);
 app.use("/api/admin/upload", uploadRouter);
 
 const publicDir = path.join(process.cwd(), "public");

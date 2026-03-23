@@ -369,15 +369,19 @@ Quando o usuário atinge o limite de 3 buscas na Aline, o fluxo pode pedir o e-m
 
 ---
 
-### 6. Painel admin (vídeo, mapa mental, podcast)
+### 6. Painel admin
 
-Acesso único por senha (`ADMIN_SECRET`). Use a página **/admin** no navegador: escolha o artigo e preencha os links de vídeo (embed + miniatura), mapa mental e podcast. As requisições abaixo usam **Bearer** com o valor de `ADMIN_SECRET`.
+Acesso único por senha (`ADMIN_SECRET`). Use a página **/admin** no navegador. O painel tem 4 abas: **Publicar via IA**, **Publicar texto pronto**, **Editar artigo** e **Links de mídia**.
 
 | Ação | Método | Endpoint completo |
 |------|--------|-------------------|
-| Listar artigos (para o dropdown) | GET | `https://seu-projeto.vercel.app/api/admin/articles` |
-| Ler artigo (para preencher o formulário) | GET | `https://seu-projeto.vercel.app/api/admin/articles/:locale/:slug` |
+| Listar artigos | GET | `https://seu-projeto.vercel.app/api/admin/articles` |
+| Ler artigo | GET | `https://seu-projeto.vercel.app/api/admin/articles/:locale/:slug` |
 | Atualizar vídeo / mapa mental / podcast | PATCH | `https://seu-projeto.vercel.app/api/admin/articles/:locale/:slug` |
+| Atualizar artigo completo (content, title, etc.) | PUT | `https://seu-projeto.vercel.app/api/admin/articles/:locale/:slug` |
+| Enviar assunto para n8n (publicar via IA) | POST | `https://seu-projeto.vercel.app/api/admin/publish` |
+| Publicar texto pronto | POST | `https://seu-projeto.vercel.app/api/admin/publish-text` |
+| Corrigir via webhook | POST | `https://seu-projeto.vercel.app/api/admin/correct` |
 
 **Headers:** `Authorization: Bearer <ADMIN_SECRET>`.
 
@@ -401,7 +405,17 @@ SUPABASE_SERVICE_KEY=sua-chave-service-role
 
 **Upload de mapa mental:** na aba "Links de mídia", além de colar a URL, você pode enviar um arquivo (JPEG, PNG, GIF ou WebP, máx. 5MB). O upload usa Supabase Storage. Crie um bucket público chamado `mindmaps` no Supabase (Storage → New bucket → nome `mindmaps` → Public).
 
-**Página do painel:** abra no navegador `https://seu-projeto.vercel.app/admin` (ou `http://localhost:3000/admin`). Digite a senha de admin uma vez; em seguida selecione o artigo e preencha os campos.
+**PUT body (atualizar artigo completo):** `{ "content": { ... }, "title": "...", "publishedAt": "...", "scheduledAt": "..." }`. O `content` é mesclado com o existente.
+
+**POST /api/admin/publish body:** `{ "locale", "slug?", "title?", "subject", "scheduledAt?" }`. O `scheduledAt` (ISO 8601) agenda a publicação; o n8n recebe e cria o artigo agendado.
+
+**POST /api/admin/publish-text body:** `{ "locale", "slug", "title?", "content": { "mainContent", "surprises", "highlights", "hypothesis", "patterns", "faq" }, "scheduledAt?" }`. Publica imediatamente ou agendado.
+
+**POST /api/admin/correct body:** `{ "locale", "slug" }`. Dispara o webhook de correção (configure `ARTICLE_CORRECT_WEBHOOK_URL`).
+
+**Cron (Vercel):** `GET /api/cron/publish-scheduled` publica artigos com `scheduledAt <= now`. Protegido por `CRON_SECRET` (header `Authorization: Bearer` ou query `?secret=`). Configure `CRON_SECRET` na Vercel.
+
+**Página do painel:** abra no navegador `https://seu-projeto.vercel.app/admin` (ou `http://localhost:3000/admin`). Digite a senha de admin uma vez; em seguida use as abas para publicar ou editar.
 
 ---
 
@@ -414,8 +428,9 @@ SUPABASE_SERVICE_KEY=sua-chave-service-role
 | Listar artigos | GET | `https://seu-projeto.vercel.app/api/articles/:locale?limit=20&offset=0` | `http://localhost:3000/api/articles/:locale?limit=20&offset=0` |
 | Cadastro de email (newsletter) | POST | `https://seu-projeto.vercel.app/api/newsletter` | `http://localhost:3000/api/newsletter` |
 | Salvar lead da Aline (após 3 buscas) | POST | `https://seu-projeto.vercel.app/api/aline-lead` | `http://localhost:3000/api/aline-lead` |
+| Cron — publicar agendados | GET | `https://seu-projeto.vercel.app/api/cron/publish-scheduled` | — |
 
 **POST (criar/atualizar):** Header `Authorization: Bearer <token>` e `Content-Type: application/json`; body em JSON (ver seção do endpoint 1).  
 **Newsletter:** body `{ "email": "..." }`; configure `NEWSLETTER_WEBHOOK_URL` para encaminhar ao n8n.  
 **Aline lead:** body `{ "email": "...", "name": "...", "messageCount": 3, "summary": "..." }`; chamado pelo n8n quando o usuário atinge o limite de buscas.  
-**Admin:** `/admin` no navegador; API com `Authorization: Bearer <ADMIN_SECRET>`.
+**Admin:** `/admin` no navegador; API com `Authorization: Bearer <ADMIN_SECRET>`. Configure `ARTICLE_CORRECT_WEBHOOK_URL` e `CRON_SECRET` para correção e agendamento.
