@@ -1,5 +1,11 @@
+import { createRequire } from "node:module";
 import mammoth from "mammoth";
-import pdfParse from "pdf-parse";
+
+const require = createRequire(import.meta.url);
+/** Núcleo do pdf-parse 1.x — evita `index.js`, que em ESM/serverless ativa testes com `./test/data/*.pdf` (ENOENT na Vercel). */
+const pdfParse = require("pdf-parse/lib/pdf-parse.js") as (
+  dataBuffer: Buffer,
+) => Promise<{ text?: string }>;
 
 /** Slug seguro para URL a partir do título ou texto livre. */
 export function slugifyInput(s: string): string {
