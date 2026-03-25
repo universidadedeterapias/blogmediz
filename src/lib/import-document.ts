@@ -1,5 +1,5 @@
 import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 
 /** Slug seguro para URL a partir do título ou texto livre. */
 export function slugifyInput(s: string): string {
@@ -133,16 +133,12 @@ export function sanitizeAdminHtml(html: string): string {
   return s.trim();
 }
 
+/** pdf-parse 1.x (sem @napi-rs/canvas) — compatível com Vercel serverless; v2 quebra o cold start. */
 export async function extractPdfMainHtml(buffer: Buffer): Promise<string> {
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
-  try {
-    const result = await parser.getText();
-    const raw = (result.text || "").trim();
-    if (!raw) return "<p></p>";
-    return plainTextToHtml(raw);
-  } finally {
-    await parser.destroy();
-  }
+  const result = await pdfParse(buffer);
+  const raw = (result.text || "").trim();
+  if (!raw) return "<p></p>";
+  return plainTextToHtml(raw);
 }
 
 export async function extractDocxMainHtml(buffer: Buffer): Promise<string> {
