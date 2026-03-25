@@ -1,8 +1,11 @@
 import type { Request, Response } from "express";
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { normalizeAuthor, normalizeCategoryTag } from "../lib/article-defaults.js";
 import { bearerAuth } from "../middleware/auth.js";
 import { isLocale, isValidPayload } from "../types/article.js";
+import { mergeArticleContentWithMediaDefaults } from "../lib/media-defaults.js";
+import { mergeContentPreservingManualMedia } from "../lib/article-content-merge.js";
 
 export const articlesRouter = Router();
 
@@ -22,26 +25,36 @@ articlesRouter.post("/", bearerAuth, async (req: Request, res: Response): Promis
   }
 
   const { locale, slug, title, categoryTag, author, publishedAt, content } = req.body;
+  const bodyPub = req.body as { isPublished?: unknown };
+  const isPublishedOpt =
+    typeof bodyPub.isPublished === "boolean" ? bodyPub.isPublished : undefined;
   const publishedAtDate = publishedAt ? new Date(publishedAt) : null;
 
   try {
+    const existing = await prisma.article.findUnique({
+      where: { locale_slug: { locale, slug } },
+    });
+    const contentMerged = mergeContentPreservingManualMedia(existing?.content, content as Record<string, unknown>);
+
     const article = await prisma.article.upsert({
       where: { locale_slug: { locale, slug } },
       create: {
         locale,
         slug,
         title,
-        categoryTag: categoryTag ?? null,
-        author: author ?? null,
+        categoryTag: normalizeCategoryTag(categoryTag ?? undefined),
+        author: normalizeAuthor(author ?? undefined),
         publishedAt: publishedAtDate,
-        content: content as object,
+        isPublished: isPublishedOpt ?? true,
+        content: contentMerged as object,
       },
       update: {
         title,
-        ...(categoryTag !== undefined && { categoryTag: categoryTag ?? null }),
-        ...(author !== undefined && { author: author ?? null }),
+        ...(categoryTag !== undefined && { categoryTag: normalizeCategoryTag(categoryTag as string | null | undefined) }),
+        ...(author !== undefined && { author: normalizeAuthor(author as string | null | undefined) }),
         ...(publishedAtDate !== undefined && { publishedAt: publishedAtDate ?? null }),
-        content: content as object,
+        ...(isPublishedOpt !== undefined && { isPublished: isPublishedOpt }),
+        content: contentMerged as object,
       },
     });
 
@@ -62,15 +75,19 @@ articlesRouter.get("/:locale/:slug", async (req: Request, res: Response): Promis
   }
 
   try {
-    const article = await prisma.article.findUnique({
-      where: { locale_slug: { locale, slug } },
+    const article = await prisma.article.findFirst({
+      where: { locale, slug, isPublished: true },
     });
     if (!article) {
       res.status(404).json({ error: "Article not found" });
       return;
     }
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
-    res.json(article);
+    const withMedia = {
+      ...article,
+      content: mergeArticleContentWithMediaDefaults(article.content),
+    };
+    res.json(withMedia);
   } catch (e) {
     console.error("Article find error:", e);
     res.status(500).json({ error: "Failed to fetch article" });
@@ -90,7 +107,7 @@ articlesRouter.get("/:locale", async (req: Request, res: Response): Promise<void
 
   try {
     const articles = await prisma.article.findMany({
-      where: { locale },
+      where: { locale, isPublished: true },
       orderBy: [
         { publishedAt: { sort: "desc", nulls: "last" } },
         { createdAt: "desc" },

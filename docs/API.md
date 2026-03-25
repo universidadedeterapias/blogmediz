@@ -405,7 +405,9 @@ SUPABASE_SERVICE_KEY=sua-chave-service-role
 
 **Upload de mapa mental:** na aba "Links de mídia", além de colar a URL, você pode enviar um arquivo (JPEG, PNG, GIF ou WebP, máx. 5MB). O upload usa Supabase Storage. Crie um bucket público chamado `mindmaps` no Supabase (Storage → New bucket → nome `mindmaps` → Public).
 
-**PUT body (atualizar artigo completo):** `{ "content": { ... }, "title": "...", "publishedAt": "...", "scheduledAt": "..." }`. O `content` é mesclado com o existente.
+**PUT body (atualizar artigo completo):** `{ "content": { ... }, "title": "...", "publishedAt": "...", "scheduledAt": "...", "isPublished": true | false }`. O `content` é mesclado com o existente. Com `isPublished: false`, o artigo some da API pública (lista e página), sem ser apagado.
+
+**PATCH body (mídia ou visibilidade):** além de `video`, `mindmap` e `podcast`, pode enviar só `{ "isPublished": false }` para tirar o artigo do ar.
 
 **POST /api/admin/publish body:** `{ "locale", "slug?", "title?", "subject", "scheduledAt?" }`. O `scheduledAt` (ISO 8601) agenda a publicação; o n8n recebe e cria o artigo agendado.
 

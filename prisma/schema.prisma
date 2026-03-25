@@ -25,6 +25,8 @@ model Article {
   author       String?
   publishedAt  DateTime?
   scheduledAt  DateTime?
+  /** Se false, o artigo não aparece na API pública (lista nem página). */
+  isPublished  Boolean   @default(true)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   content      Json

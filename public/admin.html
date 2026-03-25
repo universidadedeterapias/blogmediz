@@ -246,6 +246,18 @@
     .array-item input, .array-item textarea { flex: 1; max-width: none; }
     .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
     .btn-outline { background: transparent; color: var(--terra); border: 1px solid var(--terra); }
+    button.btn-danger {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background: transparent;
+      color: #a32020;
+      border: 1px solid #c62828;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button.btn-danger:hover { background: #fdf2f2; }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--terra-lt);
@@ -286,6 +298,54 @@
       .admin-body { flex-direction: column; }
       .two-cols { grid-template-columns: 1fr; }
     }
+    .import-upload-json-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(300px, 1.15fr);
+      gap: 20px;
+      align-items: start;
+      max-width: 100%;
+      margin-bottom: 4px;
+    }
+    @media (max-width: 900px) {
+      .import-upload-json-grid { grid-template-columns: 1fr; }
+    }
+    .json-template-wrap { display: flex; flex-direction: column; min-width: 0; }
+    .json-template-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--mid);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    textarea.json-template {
+      font-family: ui-monospace, "Cascadia Code", "Consolas", monospace;
+      font-size: 12px;
+      line-height: 1.45;
+      width: 100%;
+      min-height: 260px;
+      max-height: 440px;
+      resize: vertical;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--dark);
+      margin-top: 8px;
+      box-sizing: border-box;
+    }
+    textarea.json-template:focus {
+      outline: none;
+      border-color: var(--terra-lt);
+      box-shadow: 0 0 0 2px rgba(181, 106, 58, 0.12);
+    }
+    #page-edit #editJson { max-width: 100%; min-height: 320px; }
+    .json-template-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -321,6 +381,10 @@
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
             Publicar texto pronto
           </button>
+          <button type="button" class="nav-item" data-page="import-doc">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            Importar documento
+          </button>
           <button type="button" class="nav-item" data-page="edit">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
             Editar artigo
@@ -328,6 +392,10 @@
           <button type="button" class="nav-item" data-page="media">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             Links de mídia
+          </button>
+          <button type="button" class="nav-item" data-page="aline">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            Aline
           </button>
         </nav>
       </aside>
@@ -393,8 +461,13 @@
           </div>
           <div id="ptModeJson" style="display:none;">
             <label for="ptJson">JSON do artigo</label>
-            <textarea id="ptJson" class="tall" placeholder='{"locale":"pt","slug":"meu-artigo","title":"Título","content":{"mainContent":"<p>...</p>","surprises":[{"text":"..."}],"highlights":[{"text":"..."}],"faq":[{"question":"...","answer":"..."}]}}'></textarea>
-            <p class="hint" style="margin-top:6px;">Use locale, slug, title e content (mainContent, surprises, highlights, hypothesis, patterns, faq). Opcional: scheduledAt (ISO 8601).</p>
+            <div class="json-template-actions" style="margin-bottom:10px;">
+              <button type="button" class="btn-sm btn-outline" id="ptJsonInsertModel">Preencher com modelo completo</button>
+              <button type="button" class="btn-sm btn-outline" id="ptJsonCopyModel">Copiar modelo</button>
+              <span id="ptJsonModelFeedback" class="hint" style="margin:0;"></span>
+            </div>
+            <textarea id="ptJson" class="tall" placeholder="Clique em «Preencher com modelo completo» ou «Copiar modelo», ou cole seu JSON aqui."></textarea>
+            <p class="hint" style="margin-top:6px;">Campos: <code>locale</code>, <code>slug</code>, <code>title</code>, <code>content</code> (mainContent, surprises, highlights, hypothesis, patterns, faq). Opcional: <code>scheduledAt</code> (ISO 8601). O modelo completo também está na aba «Importar documento».</p>
           </div>
           <div id="ptModeFields" style="display:none;">
             <div class="section">
@@ -437,6 +510,73 @@
           <p id="ptStatus"></p>
         </div>
 
+        <div id="page-import-doc" class="tab-panel">
+          <h2>Importar PDF, DOCX ou página salva</h2>
+          <p class="hint">O conteúdo vira <strong>mainContent</strong> em HTML, no mesmo modelo dos outros artigos (surpresas, FAQ etc. ficam vazios até você editar depois). PDF usa só o texto extraído; linhas começando com <code>##</code> viram subtítulo. <strong>HTML / MHTML</strong> só funcionam para páginas <em>com texto no HTML</em> (blog, artigo). <strong>Não use</strong> “guardar página” enquanto o PDF está aberto no Opera/Chrome: o que importa é o leitor (aparece só “-- 1 of 13 --” etc.) — nesse caso envie o ficheiro <strong>.pdf</strong> real ou um .docx. <strong>À direita:</strong> o mesmo JSON padrão do <code>POST /api/articles</code> / aba <em>Publicar texto pronto → JSON</em>, para copiar sem abrir a documentação.</p>
+          <div class="import-upload-json-grid">
+            <div>
+              <label for="impLocale">Idioma</label>
+              <select id="impLocale">
+                <option value="pt">pt — Português</option>
+                <option value="es">es — Espanhol</option>
+                <option value="en">en — Inglês</option>
+              </select>
+              <label for="impFile" style="margin-top:14px;display:block;">Arquivo (máx. 15MB)</label>
+              <input type="file" id="impFile" accept=".pdf,.docx,.html,.htm,.mhtml,.mht,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/html,multipart/related" />
+            </div>
+            <div class="json-template-wrap">
+              <span class="json-template-title">JSON padrão do artigo</span>
+              <p class="hint" style="margin:4px 0 8px;">Mesmo formato da API e da aba «Publicar texto pronto» (modo JSON). Opcional: <code>scheduledAt</code> em ISO 8601 no lugar de <code>publishedAt</code>.</p>
+              <textarea id="impJsonTemplate" class="json-template" readonly spellcheck="false" rows="14" aria-label="Modelo JSON do artigo"></textarea>
+              <div class="json-template-actions">
+                <button type="button" class="btn-sm btn-outline" id="impCopyJsonTemplate">Copiar modelo</button>
+                <button type="button" class="btn-sm btn-outline" id="impOpenPublishJson">Abrir em «Publicar texto» (JSON)</button>
+                <span id="impCopyJsonFeedback" class="hint" style="margin:0;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="two-cols">
+            <div>
+              <label for="impSlug">Slug (opcional)</label>
+              <input type="text" id="impSlug" placeholder="gerado a partir do título se vazio" />
+            </div>
+            <div>
+              <label for="impTitle">Título (opcional)</label>
+              <input type="text" id="impTitle" placeholder="usa o nome do arquivo se vazio" />
+            </div>
+          </div>
+          <label for="impAuthor">Autor (opcional)</label>
+          <input type="text" id="impAuthor" placeholder="Padrão do site se vazio" />
+          <label for="impCategoryPreset">Categoria — escolha na lista</label>
+          <select id="impCategoryPreset">
+            <option value="">— Padrão do site —</option>
+            <option value="Sistema Imune e Geral">Sistema Imune e Geral</option>
+            <option value="Diabetes">Diabetes</option>
+            <option value="Autoimunidade">Autoimunidade</option>
+            <option value="Sono e estresse">Sono e estresse</option>
+            <option value="Alimentação">Alimentação</option>
+            <option value="Neurologia">Neurologia</option>
+            <option value="Saúde geral">Saúde geral</option>
+          </select>
+          <label for="impCategoryOther" style="margin-top:12px;">Ou digite outra tag</label>
+          <input type="text" id="impCategoryOther" placeholder="Tem prioridade sobre a lista acima" />
+          <div class="section" style="margin-top:16px;">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="impIsPublished" checked style="width:auto;max-width:none;" />
+              <span>Artigo visível no site após importar</span>
+            </label>
+          </div>
+          <div class="section">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="impSchedule" style="width:auto;max-width:none;" />
+              <span>Agendar publicação</span>
+            </label>
+            <input type="datetime-local" id="impScheduleAt" style="margin-top:8px;display:none;" />
+          </div>
+          <button type="button" class="primary" id="impSubmitBtn">Importar e publicar</button>
+          <p id="impStatus"></p>
+        </div>
+
         <div id="page-edit" class="tab-panel">
           <h2>Editar artigo</h2>
           <label for="editArticleSelect">Artigo</label>
@@ -446,10 +586,16 @@
             <div class="mode-tabs">
               <button type="button" class="edit-mode-tab active" data-mode="html">HTML completo</button>
               <button type="button" class="edit-mode-tab" data-mode="fields">Campos separados</button>
+              <button type="button" class="edit-mode-tab" data-mode="json">JSON</button>
             </div>
             <div id="editModeHtml">
               <label for="editHtml">HTML completo</label>
               <textarea id="editHtml" class="tall"></textarea>
+            </div>
+            <div id="editModeJson" style="display:none;">
+              <label for="editJson">JSON do artigo</label>
+              <p class="hint" style="margin:4px 0 8px;"><code>content</code> é mesclado com o que já está no banco (ex.: <code>mindmap</code>, <code>video</code>, <code>podcast</code> que não vier no JSON são mantidos). <code>locale</code> e <code>slug</code> devem coincidir com o artigo selecionado.</p>
+              <textarea id="editJson" class="tall json-template" spellcheck="false"></textarea>
             </div>
             <div id="editModeFields" style="display:none;">
               <div class="section">
@@ -481,9 +627,17 @@
                 <button type="button" class="btn-sm btn-outline" id="editAddFaq">+ Adicionar pergunta</button>
               </div>
             </div>
-            <div style="display:flex;gap:12px;margin-top:20px;">
+            <div class="section">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+                <input type="checkbox" id="editIsPublished" checked style="width:auto;max-width:none;" />
+                <span>Artigo visível no site (online)</span>
+              </label>
+              <p class="hint" style="margin-top:6px;">Desmarque para tirar o artigo da lista e da página sem apagar do banco.</p>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:20px;align-items:center;">
               <button type="button" class="primary" id="editSaveBtn">Salvar alterações</button>
               <button type="button" class="primary btn-outline" id="editCorrectBtn">Corrigir via webhook</button>
+              <button type="button" class="btn-danger" id="editDeleteBtn">Excluir artigo</button>
             </div>
             <p id="editStatus"></p>
           </div>
@@ -491,9 +645,17 @@
 
         <div id="page-media" class="tab-panel">
           <h2>Links de mídia</h2>
+          <p class="hint">Campos de <strong>YouTube</strong> e <strong>podcast</strong> vazios usam o padrão do site (código em <code>src/lib/article-defaults.ts</code> e, se existir, <code>DEFAULT_VIDEO_*</code> / <code>DEFAULT_PODCAST_*</code> no <code>.env</code>). Preencha só quando este artigo tiver outro link. Limpar um campo e salvar remove o valor gravado e volta ao padrão.</p>
           <label for="articleSelect">Artigo</label>
           <select id="articleSelect"><option value="">Carregando…</option></select>
           <p id="loadError" class="error"></p>
+          <div class="section">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="mediaIsPublished" checked style="width:auto;max-width:none;" />
+              <span>Artigo visível no site (online)</span>
+            </label>
+            <p class="hint" style="margin-top:6px;">Salve com os links de mídia ou só para atualizar visibilidade.</p>
+          </div>
           <div class="section">
             <strong>Vídeo (YouTube)</strong>
             <label for="videoEmbedUrl">URL do embed</label>
@@ -526,6 +688,17 @@
           <button type="button" class="primary" id="saveBtn">Salvar links</button>
           <p id="saveStatus"></p>
         </div>
+
+        <div id="page-aline" class="tab-panel">
+          <h2>Aline — chat</h2>
+          <p class="hint">Ferramentas para teste e manutenção do chat da Aline.</p>
+          <div class="section">
+            <strong>Resetar buscas</strong>
+            <p class="hint" style="margin-top:4px;">Zera o contador de buscas de todas as sessões. Útil para testes — após o reset, todos os usuários poderão fazer 3 buscas novamente.</p>
+            <button type="button" class="primary btn-outline" id="alineResetBtn">Resetar todas as sessões da Aline</button>
+            <p id="alineResetStatus" style="margin-top:8px;"></p>
+          </div>
+        </div>
       </main>
     </div>
   </div>
@@ -552,6 +725,36 @@
       const headers = { ...options.headers, Authorization: token ? `Bearer ${token}` : "" };
       return fetch(url, { ...options, headers });
     }
+
+    const IMP_ARTICLE_JSON_TEMPLATE = JSON.stringify(
+      {
+        locale: "pt",
+        slug: "slug-do-artigo",
+        title: "Título do artigo",
+        categoryTag: "Sistema Imune e Geral",
+        author: "Prof. Paulo Barbosa",
+        publishedAt: "2026-02-01T12:00:00.000Z",
+        content: {
+          mainContent:
+            '<p>Parágrafos e seções em HTML. Use h2 com id para o índice.</p><h2 id="intro">Introdução</h2><p>...</p>',
+          surprises: [{ text: "Bloco «Isso vai te surpreender»" }],
+          highlights: [{ text: "Citação em destaque" }],
+          hypothesis: "<p>A hipótese emocional do artigo (HTML).</p>",
+          patterns: ["Padrão 1 específico do tema", "Padrão 2"],
+          faq: [
+            { question: "Pergunta 1?", answer: "Resposta 1." },
+            { question: "Pergunta 2?", answer: "Resposta 2." },
+          ],
+        },
+      },
+      null,
+      2,
+    );
+
+    (function initArticleJsonTemplateViews() {
+      const impEl = document.getElementById("impJsonTemplate");
+      if (impEl) impEl.value = IMP_ARTICLE_JSON_TEMPLATE;
+    })();
 
     const loginView = document.getElementById("loginView");
     const panelView = document.getElementById("panelView");
@@ -681,7 +884,7 @@
       }
       const list = await r.json();
       articleSelect.innerHTML = "<option value=''>Selecione um artigo</option>" +
-        list.map((a) => `<option value="${a.locale}|${a.slug}">${a.locale} — ${a.title}</option>`).join("");
+        list.map((a) => `<option value="${a.locale}|${a.slug}">${a.locale} — ${a.title}${a.isPublished === false ? " (offline)" : ""}</option>`).join("");
     }
 
     async function onSelectArticle() {
@@ -708,6 +911,7 @@
       podcastAudioUrl.value = p.audioUrl || "";
       podcastTitle.value = p.title || "";
       podcastEyebrow.value = p.eyebrow || "";
+      document.getElementById("mediaIsPublished").checked = article.isPublished !== false;
     }
 
     saveBtn.addEventListener("click", async () => {
@@ -720,27 +924,21 @@
       const [locale, slug] = val.split("|");
       const body = {
         video: {
-          embedUrl: videoEmbedUrl.value.trim() || undefined,
-          thumbnailUrl: videoThumbnailUrl.value.trim() || undefined,
-          title: videoTitle.value.trim() || undefined,
+          embedUrl: videoEmbedUrl.value.trim(),
+          thumbnailUrl: videoThumbnailUrl.value.trim(),
+          title: videoTitle.value.trim(),
         },
         mindmap: {
           imageUrl: mindmapImageUrl.value.trim() || undefined,
           caption: mindmapCaption.value.trim() || undefined,
         },
         podcast: {
-          audioUrl: podcastAudioUrl.value.trim() || undefined,
-          title: podcastTitle.value.trim() || undefined,
-          eyebrow: podcastEyebrow.value.trim() || undefined,
+          audioUrl: podcastAudioUrl.value.trim(),
+          title: podcastTitle.value.trim(),
+          eyebrow: podcastEyebrow.value.trim(),
         },
+        isPublished: document.getElementById("mediaIsPublished").checked,
       };
-      if (!body.video.embedUrl && !body.video.thumbnailUrl && !body.video.title &&
-          !body.mindmap.imageUrl && !body.mindmap.caption &&
-          !body.podcast.audioUrl && !body.podcast.title && !body.podcast.eyebrow) {
-        saveStatus.textContent = "Preencha pelo menos um campo.";
-        saveStatus.className = "error";
-        return;
-      }
       saveStatus.textContent = "Salvando…";
       saveStatus.className = "";
       const r = await api(`/articles/${locale}/${slug}`, {
@@ -1021,6 +1219,128 @@
       loadArticles();
     });
 
+    function openPublishTextJsonMode(fillFromTemplate) {
+      document.querySelectorAll(".nav-item").forEach((b) => b.classList.remove("active"));
+      const navPt = document.querySelector('.nav-item[data-page="publish-text"]');
+      if (navPt) navPt.classList.add("active");
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.remove("active"));
+      const panel = document.getElementById("page-publish-text");
+      if (panel) panel.classList.add("active");
+      document.querySelectorAll("#page-publish-text .mode-tab").forEach((b) => b.classList.remove("active"));
+      const jsonTab = document.querySelector('#page-publish-text .mode-tab[data-mode="json"]');
+      if (jsonTab) jsonTab.classList.add("active");
+      document.getElementById("ptModeHtml").style.display = "none";
+      document.getElementById("ptModeJson").style.display = "block";
+      document.getElementById("ptModeFields").style.display = "none";
+      document.getElementById("ptFormFields").style.display = "none";
+      document.getElementById("ptScheduleSection").style.display = "none";
+      const ptJson = document.getElementById("ptJson");
+      if (fillFromTemplate && ptJson) ptJson.value = IMP_ARTICLE_JSON_TEMPLATE;
+      if (ptJson) ptJson.focus();
+    }
+
+    document.getElementById("impCopyJsonTemplate")?.addEventListener("click", async () => {
+      const fb = document.getElementById("impCopyJsonFeedback");
+      try {
+        await navigator.clipboard.writeText(IMP_ARTICLE_JSON_TEMPLATE);
+        if (fb) {
+          fb.textContent = "Copiado.";
+          setTimeout(() => {
+            fb.textContent = "";
+          }, 2000);
+        }
+      } catch {
+        if (fb) fb.textContent = "Não foi possível copiar (permissão do navegador).";
+      }
+    });
+
+    document.getElementById("impOpenPublishJson")?.addEventListener("click", () => {
+      const fb = document.getElementById("impCopyJsonFeedback");
+      if (fb) fb.textContent = "";
+      openPublishTextJsonMode(true);
+    });
+
+    document.getElementById("ptJsonInsertModel")?.addEventListener("click", () => {
+      const ta = document.getElementById("ptJson");
+      const fb = document.getElementById("ptJsonModelFeedback");
+      if (ta) ta.value = IMP_ARTICLE_JSON_TEMPLATE;
+      if (fb) fb.textContent = "";
+    });
+
+    document.getElementById("ptJsonCopyModel")?.addEventListener("click", async () => {
+      const fb = document.getElementById("ptJsonModelFeedback");
+      try {
+        await navigator.clipboard.writeText(IMP_ARTICLE_JSON_TEMPLATE);
+        if (fb) {
+          fb.textContent = "Modelo copiado.";
+          setTimeout(() => {
+            fb.textContent = "";
+          }, 2000);
+        }
+      } catch {
+        if (fb) fb.textContent = "Não foi possível copiar (permissão do navegador).";
+      }
+    });
+
+    // --- Importar PDF / DOCX / HTML / MHTML ---
+    const impSchedule = document.getElementById("impSchedule");
+    const impScheduleAt = document.getElementById("impScheduleAt");
+    impSchedule.addEventListener("change", () => {
+      impScheduleAt.style.display = impSchedule.checked ? "block" : "none";
+    });
+
+    document.getElementById("impSubmitBtn").addEventListener("click", async () => {
+      const status = document.getElementById("impStatus");
+      status.textContent = "";
+      status.className = "";
+      const fileInput = document.getElementById("impFile");
+      const file = fileInput.files?.[0];
+      if (!file) {
+        status.textContent = "Selecione um arquivo (PDF, DOCX, HTML/MHTML ou página salva do navegador).";
+        status.className = "error";
+        return;
+      }
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("locale", document.getElementById("impLocale").value || "pt");
+      const slug = document.getElementById("impSlug").value.trim();
+      const title = document.getElementById("impTitle").value.trim();
+      const author = document.getElementById("impAuthor").value.trim();
+      if (slug) fd.append("slug", slug);
+      if (title) fd.append("title", title);
+      if (author) fd.append("author", author);
+      const otherTag = document.getElementById("impCategoryOther").value.trim();
+      const preset = document.getElementById("impCategoryPreset").value.trim();
+      if (otherTag) fd.append("categoryTag", otherTag);
+      else if (preset) fd.append("categoryPreset", preset);
+      if (impSchedule.checked && impScheduleAt.value) {
+        fd.append("scheduledAt", new Date(impScheduleAt.value).toISOString());
+      }
+      fd.append("isPublished", document.getElementById("impIsPublished").checked ? "true" : "false");
+      status.textContent = "Importando…";
+      const r = await api("/import-document", { method: "POST", body: fd, headers: {} });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        var impErr = data.error || "Erro ao importar.";
+        if (data.details) impErr += " — " + data.details;
+        if (data.prismaCode) impErr += " (" + data.prismaCode + ")";
+        status.textContent = impErr;
+        status.className = "error";
+        return;
+      }
+      status.textContent =
+        "Importado na base de dados: " +
+        (data.locale || "") +
+        " — " +
+        (data.slug || "") +
+        " — " +
+        (data.title || "") +
+        ". O site mostra esta cópia (não o ficheiro no PC). Se o texto continuar errado, use o .pdf real, não a página guardada do leitor.";
+      status.className = "success";
+      loadArticles();
+      fileInput.value = "";
+    });
+
     // --- Editar artigo ---
     const editSurprises = createArrayInput("editSurprisesList", "Texto");
     const editHighlights = createArrayInput("editHighlightsList", "Citação");
@@ -1037,9 +1357,10 @@
       btn.addEventListener("click", () => {
         document.querySelectorAll("#page-edit .edit-mode-tab").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
-        const isHtml = btn.dataset.mode === "html";
-        document.getElementById("editModeHtml").style.display = isHtml ? "block" : "none";
-        document.getElementById("editModeFields").style.display = isHtml ? "none" : "block";
+        const mode = btn.dataset.mode;
+        document.getElementById("editModeHtml").style.display = mode === "html" ? "block" : "none";
+        document.getElementById("editModeFields").style.display = mode === "fields" ? "block" : "none";
+        document.getElementById("editModeJson").style.display = mode === "json" ? "block" : "none";
       });
     });
 
@@ -1053,7 +1374,30 @@
       }
       const list = await r.json();
       sel.innerHTML = "<option value=''>Selecione um artigo</option>" +
-        list.map((a) => `<option value="${a.locale}|${a.slug}">${a.locale} — ${a.title}</option>`).join("");
+        list.map((a) => `<option value="${a.locale}|${a.slug}">${a.locale} — ${a.title}${a.isPublished === false ? " (offline)" : ""}</option>`).join("");
+    }
+
+    function articleToEditJsonPayload(a) {
+      const iso = (v) => {
+        if (v == null) return null;
+        if (typeof v === "string") return v;
+        try {
+          return new Date(v).toISOString();
+        } catch {
+          return null;
+        }
+      };
+      return {
+        locale: a.locale,
+        slug: a.slug,
+        title: a.title,
+        categoryTag: a.categoryTag ?? null,
+        author: a.author ?? null,
+        publishedAt: iso(a.publishedAt),
+        scheduledAt: iso(a.scheduledAt),
+        isPublished: a.isPublished !== false,
+        content: a.content && typeof a.content === "object" ? a.content : {},
+      };
     }
 
     function contentToHtml(c) {
@@ -1079,18 +1423,8 @@
       return parts.join("");
     }
 
-    document.getElementById("editArticleSelect").addEventListener("change", async () => {
-      const val = document.getElementById("editArticleSelect").value;
-      document.getElementById("editForm").style.display = val ? "block" : "none";
-      document.getElementById("editLoadError").textContent = "";
-      if (!val) return;
-      const [locale, slug] = val.split("|");
-      const r = await api(`/articles/${locale}/${slug}`);
-      if (!r.ok) {
-        document.getElementById("editLoadError").textContent = "Falha ao carregar.";
-        return;
-      }
-      currentEditArticle = await r.json();
+    function populateEditFormFromArticle() {
+      if (!currentEditArticle) return;
       const c = currentEditArticle.content || {};
       document.getElementById("editHtml").value = contentToHtml(c);
       document.getElementById("editMainContent").value = c.mainContent || c.body || "";
@@ -1103,6 +1437,26 @@
       (c.patterns || []).forEach((p) => editPatterns.add(String(p)));
       editFaq.clear();
       (c.faq || []).forEach((f) => editFaq.add(f.question || "", f.answer || ""));
+      document.getElementById("editIsPublished").checked = currentEditArticle.isPublished !== false;
+      document.getElementById("editJson").value = JSON.stringify(articleToEditJsonPayload(currentEditArticle), null, 2);
+    }
+
+    document.getElementById("editArticleSelect").addEventListener("change", async () => {
+      const val = document.getElementById("editArticleSelect").value;
+      document.getElementById("editForm").style.display = val ? "block" : "none";
+      document.getElementById("editLoadError").textContent = "";
+      if (!val) {
+        currentEditArticle = null;
+        return;
+      }
+      const [locale, slug] = val.split("|");
+      const r = await api(`/articles/${locale}/${slug}`);
+      if (!r.ok) {
+        document.getElementById("editLoadError").textContent = "Falha ao carregar.";
+        return;
+      }
+      currentEditArticle = await r.json();
+      populateEditFormFromArticle();
     });
 
     document.getElementById("editSaveBtn").addEventListener("click", async () => {
@@ -1111,9 +1465,11 @@
       status.textContent = "";
       status.className = "";
       const { locale, slug } = currentEditArticle;
+      const editMode = document.querySelector("#page-edit .edit-mode-tab.active").dataset.mode;
       let content;
-      const isHtml = document.querySelector("#page-edit .edit-mode-tab.active").dataset.mode === "html";
-      if (isHtml) {
+      let putExtra = {};
+
+      if (editMode === "html") {
         const parsed = parseHtmlToContent(document.getElementById("editHtml").value);
         if (!parsed) {
           status.textContent = "HTML inválido.";
@@ -1121,6 +1477,52 @@
           return;
         }
         content = { ...(currentEditArticle.content || {}), ...parsed };
+        putExtra = {
+          title: currentEditArticle.title,
+          isPublished: document.getElementById("editIsPublished").checked,
+        };
+      } else if (editMode === "json") {
+        let parsed;
+        try {
+          parsed = JSON.parse(document.getElementById("editJson").value.trim());
+        } catch (e) {
+          status.textContent = "JSON inválido: " + (e.message || "erro de sintaxe");
+          status.className = "error";
+          return;
+        }
+        if (parsed.locale != null && String(parsed.locale) !== locale) {
+          status.textContent = "O locale no JSON deve ser «" + locale + "» (o mesmo do artigo selecionado).";
+          status.className = "error";
+          return;
+        }
+        if (parsed.slug != null && String(parsed.slug) !== slug) {
+          status.textContent = "O slug no JSON deve ser «" + slug + "» (o mesmo do artigo selecionado).";
+          status.className = "error";
+          return;
+        }
+        const cnt = parsed.content;
+        if (!cnt || typeof cnt !== "object" || (typeof cnt.mainContent !== "string" && typeof cnt.body !== "string")) {
+          status.textContent = "content deve ser um objeto com mainContent ou body (string).";
+          status.className = "error";
+          return;
+        }
+        content = { ...(currentEditArticle.content || {}), ...cnt };
+        putExtra = {
+          title: parsed.title !== undefined ? String(parsed.title) : currentEditArticle.title,
+          isPublished: typeof parsed.isPublished === "boolean" ? parsed.isPublished : document.getElementById("editIsPublished").checked,
+        };
+        if (parsed.categoryTag !== undefined) {
+          putExtra.categoryTag = parsed.categoryTag == null || parsed.categoryTag === "" ? null : String(parsed.categoryTag);
+        }
+        if (parsed.author !== undefined) {
+          putExtra.author = parsed.author == null || parsed.author === "" ? null : String(parsed.author);
+        }
+        if (parsed.publishedAt !== undefined) {
+          putExtra.publishedAt = parsed.publishedAt ? new Date(String(parsed.publishedAt)).toISOString() : null;
+        }
+        if (parsed.scheduledAt !== undefined) {
+          putExtra.scheduledAt = parsed.scheduledAt ? new Date(String(parsed.scheduledAt)).toISOString() : null;
+        }
       } else {
         content = { ...(currentEditArticle.content || {}), ...buildContentFromFields(
           document.getElementById("editMainContent").value,
@@ -1130,12 +1532,17 @@
           editPatterns.getValues(),
           editFaq.getValues()
         )};
+        putExtra = {
+          title: currentEditArticle.title,
+          isPublished: document.getElementById("editIsPublished").checked,
+        };
       }
+
       status.textContent = "Salvando…";
       const r = await api(`/articles/${locale}/${slug}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, title: currentEditArticle.title }),
+        body: JSON.stringify({ content, ...putExtra }),
       });
       if (!r.ok) {
         const data = await r.json().catch(() => ({}));
@@ -1144,8 +1551,35 @@
         return;
       }
       currentEditArticle = await r.json();
+      populateEditFormFromArticle();
       status.textContent = "Salvo.";
       status.className = "success";
+    });
+
+    document.getElementById("editDeleteBtn").addEventListener("click", async () => {
+      if (!currentEditArticle) return;
+      const { locale, slug, title } = currentEditArticle;
+      const label = (title || slug) + " (" + locale + "/" + slug + ")";
+      if (!confirm("Excluir permanentemente o artigo «" + label + "»? Esta ação não pode ser desfeita.")) return;
+      const status = document.getElementById("editStatus");
+      status.textContent = "";
+      status.className = "";
+      status.textContent = "Excluindo…";
+      const r = await api(`/articles/${locale}/${slug}`, { method: "DELETE" });
+      if (r.status === 204) {
+        currentEditArticle = null;
+        document.getElementById("editForm").style.display = "none";
+        document.getElementById("editArticleSelect").value = "";
+        document.getElementById("editLoadError").textContent = "";
+        status.textContent = "Artigo excluído.";
+        status.className = "success";
+        loadEditArticles();
+        loadArticles();
+        return;
+      }
+      const data = await r.json().catch(() => ({}));
+      status.textContent = data.error || "Erro ao excluir.";
+      status.className = "error";
     });
 
     document.getElementById("editCorrectBtn").addEventListener("click", async () => {
@@ -1166,6 +1600,21 @@
         return;
       }
       status.textContent = "Webhook disparado. O n8n processará a correção.";
+      status.className = "success";
+    });
+
+    document.getElementById("alineResetBtn").addEventListener("click", async () => {
+      const status = document.getElementById("alineResetStatus");
+      status.textContent = "Resetando…";
+      status.className = "";
+      const r = await api("/aline-reset", { method: "POST" });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        status.textContent = data.error || "Erro ao resetar.";
+        status.className = "error";
+        return;
+      }
+      status.textContent = data.message || "Todas as sessões foram resetadas. Todos podem fazer 3 buscas novamente.";
       status.className = "success";
     });
 

@@ -1,12 +1,20 @@
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import { getRequestId } from "../lib/webhook-session.js";
 import { Router } from "express";
 import multer from "multer";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "../lib/prisma.js";
+import { normalizeAuthor, normalizeCategoryTag } from "../lib/article-defaults.js";
 import { adminAuth } from "../middleware/auth.js";
 import { isLocale } from "../types/article.js";
 import { env } from "../config/env.js";
+import {
+  bufferToMainHtml,
+  buildArticleContentFromImport,
+  slugifyInput,
+} from "../lib/import-document.js";
+import { applyVideoPodcastPatchToContent } from "../lib/media-defaults.js";
+import { mergeContentPreservingManualMedia } from "../lib/article-content-merge.js";
 
 export const adminRouter = Router();
 
@@ -17,6 +25,53 @@ const upload = multer({
     cb(null, /^image\/(jpeg|png|gif|webp)$/i.test(file.mimetype));
   },
 });
+
+const documentUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const m = (file.mimetype || "").toLowerCase().split(";")[0]?.trim() ?? "";
+    const name = (file.originalname || "").toLowerCase();
+    const ok =
+      m === "application/pdf" ||
+      m === "application/x-pdf" ||
+      m === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
+      m === "text/html" ||
+      m === "application/xhtml+xml" ||
+      m === "multipart/related" ||
+      m === "application/x-mhtml" ||
+      m === "message/rfc822" ||
+      m === "application/octet-stream" ||
+      name.endsWith(".pdf") ||
+      name.endsWith(".docx") ||
+      name.endsWith(".html") ||
+      name.endsWith(".htm") ||
+      name.endsWith(".mhtml") ||
+      name.endsWith(".mht");
+    cb(null, ok);
+  },
+});
+
+/** Evita 500 genérico quando Multer rejeita arquivo (tamanho, etc.). */
+function importDocumentUploadMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
+  documentUpload.single("file")(req, res, (err: unknown) => {
+    if (err) {
+      const code = err && typeof err === "object" && "code" in err ? String((err as { code: string }).code) : "";
+      if (code === "LIMIT_FILE_SIZE") {
+        res.status(413).json({ error: "Arquivo muito grande (máx. 15MB)." });
+        return;
+      }
+      const msg = err instanceof Error ? err.message : "Falha no upload do arquivo.";
+      res.status(400).json({ error: msg });
+      return;
+    }
+    next();
+  });
+}
 
 /** POST /api/admin/login — login com email e senha fixos; retorna token Bearer. */
 adminRouter.post("/login", async (req: Request, res: Response): Promise<void> => {
@@ -82,7 +137,7 @@ adminRouter.get("/articles", async (_req: Request, res: Response): Promise<void>
   try {
     const articles = await prisma.article.findMany({
       orderBy: [{ locale: "asc" }, { slug: "asc" }],
-      select: { locale: true, slug: true, title: true, publishedAt: true, scheduledAt: true },
+      select: { locale: true, slug: true, title: true, publishedAt: true, scheduledAt: true, isPublished: true },
     });
     res.json(articles);
   } catch (e) {
@@ -166,17 +221,19 @@ adminRouter.patch(
     }
 
     const body = req.body as Record<string, unknown>;
-    const video = body.video as Record<string, string> | undefined;
+    const video = body.video;
     const mindmap = body.mindmap as Record<string, string> | undefined;
-    const podcast = body.podcast as Record<string, string> | undefined;
+    const podcast = body.podcast;
 
-    const hasVideo = video && typeof video === "object" && (video.embedUrl !== undefined || video.thumbnailUrl !== undefined || video.title !== undefined);
+    const hasVideo = video !== null && typeof video === "object" && !Array.isArray(video);
     const hasMindmap = mindmap && typeof mindmap === "object" && (mindmap.imageUrl !== undefined || mindmap.caption !== undefined);
-    const hasPodcast = podcast && typeof podcast === "object" && (podcast.audioUrl !== undefined || podcast.title !== undefined || podcast.eyebrow !== undefined);
+    const hasPodcast = podcast !== null && typeof podcast === "object" && !Array.isArray(podcast);
+    const hasVisibility = typeof body.isPublished === "boolean";
 
-    if (!hasVideo && !hasMindmap && !hasPodcast) {
+    if (!hasVideo && !hasMindmap && !hasPodcast && !hasVisibility) {
       res.status(400).json({
-        error: "Send at least one of: video (embedUrl/thumbnailUrl/title), mindmap (imageUrl/caption), podcast (audioUrl/title/eyebrow)",
+        error:
+          "Envie ao menos: video, mindmap, podcast ou isPublished (true|false).",
       });
       return;
     }
@@ -190,42 +247,28 @@ adminRouter.patch(
         return;
       }
 
-      const current = (article.content as Record<string, unknown>) || {};
-      const nextContent = { ...current };
+      let nextContent = { ...((article.content as Record<string, unknown>) || {}) };
 
-      if (hasVideo && video) {
-        nextContent.video = {
-          ...(typeof current.video === "object" && current.video !== null
-            ? (current.video as Record<string, unknown>)
-            : {}),
-          ...(video.embedUrl !== undefined && { embedUrl: String(video.embedUrl) }),
-          ...(video.thumbnailUrl !== undefined && { thumbnailUrl: String(video.thumbnailUrl) }),
-          ...(video.title !== undefined && { title: String(video.title) }),
-        };
+      if (hasVideo || hasPodcast) {
+        nextContent = applyVideoPodcastPatchToContent(nextContent, hasVideo ? video : undefined, hasPodcast ? podcast : undefined);
       }
       if (hasMindmap && mindmap) {
         nextContent.mindmap = {
-          ...(typeof current.mindmap === "object" && current.mindmap !== null
-            ? (current.mindmap as Record<string, unknown>)
+          ...(typeof nextContent.mindmap === "object" && nextContent.mindmap !== null
+            ? (nextContent.mindmap as Record<string, unknown>)
             : {}),
           ...(mindmap.imageUrl !== undefined && { imageUrl: String(mindmap.imageUrl) }),
           ...(mindmap.caption !== undefined && { caption: String(mindmap.caption) }),
         };
       }
-      if (hasPodcast && podcast) {
-        nextContent.podcast = {
-          ...(typeof current.podcast === "object" && current.podcast !== null
-            ? (current.podcast as Record<string, unknown>)
-            : {}),
-          ...(podcast.audioUrl !== undefined && { audioUrl: String(podcast.audioUrl) }),
-          ...(podcast.title !== undefined && { title: String(podcast.title) }),
-          ...(podcast.eyebrow !== undefined && { eyebrow: String(podcast.eyebrow) }),
-        };
-      }
+
+      const patchData: { content?: object; isPublished?: boolean } = {};
+      if (hasVideo || hasMindmap || hasPodcast) patchData.content = nextContent as object;
+      if (hasVisibility) patchData.isPublished = body.isPublished as boolean;
 
       const updated = await prisma.article.update({
         where: { locale_slug: { locale, slug } },
-        data: { content: nextContent as object },
+        data: patchData,
       });
       res.json(updated);
     } catch (e) {
@@ -272,6 +315,7 @@ adminRouter.put(
       if (body.author !== undefined) updateData.author = body.author ? String(body.author) : null;
       if (body.publishedAt !== undefined) updateData.publishedAt = body.publishedAt ? new Date(body.publishedAt as string) : null;
       if (body.scheduledAt !== undefined) updateData.scheduledAt = body.scheduledAt ? new Date(body.scheduledAt as string) : null;
+      if (typeof body.isPublished === "boolean") updateData.isPublished = body.isPublished;
 
       const updated = await prisma.article.update({
         where: { locale_slug: { locale, slug } },
@@ -285,6 +329,32 @@ adminRouter.put(
   }
 );
 
+/** DELETE /api/admin/articles/:locale/:slug — remove o artigo permanentemente. */
+adminRouter.delete(
+  "/articles/:locale/:slug",
+  async (req: Request, res: Response): Promise<void> => {
+    const locale = Array.isArray(req.params.locale) ? req.params.locale[0] : req.params.locale;
+    const slug = Array.isArray(req.params.slug) ? req.params.slug[0] : req.params.slug;
+    if (!locale || !slug || !isLocale(locale)) {
+      res.status(400).json({ error: "Invalid locale or slug" });
+      return;
+    }
+    try {
+      await prisma.article.delete({
+        where: { locale_slug: { locale, slug } },
+      });
+      res.status(204).send();
+    } catch (e) {
+      if (e && typeof e === "object" && "code" in e && (e as { code: string }).code === "P2025") {
+        res.status(404).json({ error: "Article not found" });
+        return;
+      }
+      console.error("Admin delete article error:", e);
+      res.status(500).json({ error: "Failed to delete article" });
+    }
+  }
+);
+
 /** POST /api/admin/publish-text — publica artigo com texto pronto (imediato ou agendado). */
 adminRouter.post("/publish-text", async (req: Request, res: Response): Promise<void> => {
   const body = req.body as Record<string, unknown>;
@@ -293,6 +363,8 @@ adminRouter.post("/publish-text", async (req: Request, res: Response): Promise<v
   const title = typeof body.title === "string" ? body.title.trim() : slug.replace(/-/g, " ");
   const content = body.content as Record<string, unknown> | undefined;
   const scheduledAt = body.scheduledAt ? new Date(body.scheduledAt as string) : null;
+  const isPublished =
+    typeof body.isPublished === "boolean" ? body.isPublished : undefined;
 
   if (!locale || !isLocale(locale) || !slug) {
     res.status(400).json({ error: "locale (pt|es|en) and slug are required" });
@@ -311,23 +383,38 @@ adminRouter.post("/publish-text", async (req: Request, res: Response): Promise<v
   }
 
   const publishedAt = scheduledAt ? null : new Date();
+  const rawAuthor = typeof body.author === "string" ? body.author : undefined;
+  const rawCategory = typeof body.categoryTag === "string" ? body.categoryTag : undefined;
+  const authorPub = normalizeAuthor(rawAuthor);
+  const categoryPub = normalizeCategoryTag(rawCategory);
 
   try {
+    const existingPub = await prisma.article.findUnique({
+      where: { locale_slug: { locale, slug } },
+    });
+    const contentMerged = mergeContentPreservingManualMedia(existingPub?.content, content as Record<string, unknown>);
+
     const article = await prisma.article.upsert({
       where: { locale_slug: { locale, slug } },
       create: {
         locale,
         slug,
         title,
-        content: content as object,
+        author: authorPub,
+        categoryTag: categoryPub,
+        content: contentMerged as object,
         publishedAt,
         scheduledAt,
+        isPublished: isPublished ?? true,
       },
       update: {
         title,
-        content: content as object,
+        content: contentMerged as object,
         publishedAt,
         scheduledAt,
+        ...(isPublished !== undefined && { isPublished }),
+        ...(typeof body.author === "string" && { author: authorPub }),
+        ...(typeof body.categoryTag === "string" && { categoryTag: categoryPub }),
       },
     });
     res.status(200).json(article);
@@ -336,6 +423,131 @@ adminRouter.post("/publish-text", async (req: Request, res: Response): Promise<v
     res.status(500).json({ error: "Failed to publish article" });
   }
 });
+
+/** POST /api/admin/import-document — PDF, DOCX, HTML ou MHTML (página salva) → content + publish-text equivalente. */
+adminRouter.post(
+  "/import-document",
+  documentUpload.single("file"),
+  async (req: Request, res: Response): Promise<void> => {
+    const file = req.file;
+    if (!file?.buffer) {
+      res.status(400).json({
+        error: "Envie um arquivo PDF ou DOCX (máx. 15MB) no campo file.",
+      });
+      return;
+    }
+
+    const body = req.body as Record<string, string | undefined>;
+    const localeRaw = typeof body.locale === "string" ? body.locale.trim() : "";
+    let title = typeof body.title === "string" ? body.title.trim() : "";
+    let slug = typeof body.slug === "string" ? body.slug.trim() : "";
+
+    if (!localeRaw || !isLocale(localeRaw)) {
+      res.status(400).json({ error: "locale (pt|es|en) é obrigatório" });
+      return;
+    }
+
+    const locale = localeRaw;
+
+    let mainHtml: string;
+    try {
+      mainHtml = await bufferToMainHtml(file.buffer, file.mimetype, file.originalname);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Falha ao ler o documento";
+      res.status(400).json({ error: msg });
+      return;
+    }
+
+    if (!title) {
+      const baseName = (file.originalname || "artigo").replace(/\.[^.]+$/, "").replace(/[-_]+/g, " ");
+      title = baseName.trim() || "Artigo importado";
+    }
+    title = title.replace(/\r\n|\r|\n/g, " ").replace(/\s+/g, " ").trim();
+
+    if (!slug) {
+      slug = slugifyInput(title);
+    } else {
+      slug = slugifyInput(slug);
+    }
+
+    const importBase = buildArticleContentFromImport(mainHtml);
+
+    const isPublishedRaw = body.isPublished;
+    let isPublished: boolean | undefined;
+    if (isPublishedRaw === "false" || isPublishedRaw === "0") isPublished = false;
+    else if (isPublishedRaw === "true" || isPublishedRaw === "1") isPublished = true;
+
+    const rawAuthor = typeof body.author === "string" ? body.author : undefined;
+    let rawCategory = typeof body.categoryTag === "string" ? body.categoryTag : undefined;
+    if (!rawCategory?.trim() && typeof body.categoryPreset === "string") {
+      rawCategory = body.categoryPreset;
+    }
+    const authorPub = normalizeAuthor(rawAuthor);
+    const categoryPub = normalizeCategoryTag(rawCategory);
+
+    let scheduledAt: Date | null = null;
+    if (body.scheduledAt && String(body.scheduledAt).trim()) {
+      const d = new Date(String(body.scheduledAt));
+      if (!Number.isNaN(d.getTime())) scheduledAt = d;
+    }
+
+    const publishedAt = scheduledAt ? null : new Date();
+
+    try {
+      const existingImp = await prisma.article.findUnique({
+        where: { locale_slug: { locale, slug } },
+      });
+      const contentMerged = existingImp
+        ? mergeContentPreservingManualMedia(existingImp.content, importBase)
+        : importBase;
+
+      let contentForDb: object;
+      try {
+        contentForDb = JSON.parse(JSON.stringify(contentMerged)) as object;
+      } catch {
+        res.status(400).json({
+          error: "O conteúdo gerado não pôde ser convertido para salvar (dados inválidos).",
+        });
+        return;
+      }
+
+      const article = await prisma.article.upsert({
+        where: { locale_slug: { locale, slug } },
+        create: {
+          locale,
+          slug,
+          title,
+          author: authorPub,
+          categoryTag: categoryPub,
+          content: contentForDb,
+          publishedAt,
+          scheduledAt,
+          isPublished: isPublished !== undefined ? isPublished : true,
+        },
+        update: {
+          title,
+          author: authorPub,
+          categoryTag: categoryPub,
+          content: contentForDb,
+          publishedAt,
+          scheduledAt,
+          ...(isPublished !== undefined && { isPublished }),
+        },
+      });
+      res.status(200).json(article);
+    } catch (e) {
+      console.error("Admin import-document error:", e);
+      const details = e instanceof Error ? e.message : String(e);
+      const prismaCode =
+        e && typeof e === "object" && "code" in e ? String((e as { code: unknown }).code) : undefined;
+      res.status(500).json({
+        error: "Falha ao salvar o artigo após importar. Verifique o banco e tente de novo.",
+        details,
+        ...(prismaCode && { prismaCode }),
+      });
+    }
+  }
+);
 
 /** POST /api/admin/correct — dispara webhook de correção com locale e slug. */
 adminRouter.post("/correct", async (req: Request, res: Response): Promise<void> => {
@@ -373,5 +585,19 @@ adminRouter.post("/correct", async (req: Request, res: Response): Promise<void> 
   } catch (e) {
     console.error("Admin correct webhook fetch error:", e);
     res.status(502).json({ error: "Failed to call webhook" });
+  }
+});
+
+/** POST /api/admin/aline-reset — reseta todas as sessões da Aline (zerando contadores). Apenas admin. */
+adminRouter.post("/aline-reset", async (_req: Request, res: Response): Promise<void> => {
+  try {
+    const result = await prisma.alineSession.deleteMany({});
+    res.status(200).json({
+      ok: true,
+      message: `${result.count} sessão(ões) resetada(s). Todos podem fazer 3 buscas novamente.`,
+    });
+  } catch (e) {
+    console.error("Admin aline-reset error:", e);
+    res.status(500).json({ error: "Erro ao resetar sessões da Aline" });
   }
 });

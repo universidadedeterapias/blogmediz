@@ -24,6 +24,7 @@ cronRouter.get("/publish-scheduled", async (_req: Request, res: Response): Promi
       where: {
         scheduledAt: { lte: now },
         publishedAt: null,
+        isPublished: true,
       },
     });
 

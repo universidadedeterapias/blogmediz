@@ -32,6 +32,15 @@ export const env = {
   supabaseServiceKey: optional("SUPABASE_SERVICE_KEY", ""),
   /** Segredo para proteger a rota do Vercel Cron (publish-scheduled). */
   cronSecret: optional("CRON_SECRET", ""),
+  /** URL pública de vídeo (ex.: embed YouTube) quando o artigo não define `content.video`. */
+  defaultVideoEmbedUrl: optional("DEFAULT_VIDEO_EMBED_URL", ""),
+  defaultVideoThumbnailUrl: optional("DEFAULT_VIDEO_THUMBNAIL_URL", ""),
+  defaultVideoTitle: optional("DEFAULT_VIDEO_TITLE", ""),
+  /** URL do episódio / áudio quando o artigo não define `content.podcast`. */
+  defaultPodcastAudioUrl: optional("DEFAULT_PODCAST_AUDIO_URL", ""),
+  defaultPodcastTitle: optional("DEFAULT_PODCAST_TITLE", ""),
+  defaultPodcastEyebrow: optional("DEFAULT_PODCAST_EYEBROW", ""),
+  defaultPodcastSubtitle: optional("DEFAULT_PODCAST_SUBTITLE", ""),
 } as const;
 
 export function assertEnv(): void {

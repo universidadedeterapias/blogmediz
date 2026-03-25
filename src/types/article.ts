@@ -24,7 +24,7 @@ export interface ArticleContentPayload {
   /** Mapa mental: URL da imagem e legenda. */
   mindmap?: { imageUrl?: string; caption?: string } | null;
   /** Podcast: URL do áudio, título, eyebrow. */
-  podcast?: { audioUrl?: string; title?: string; eyebrow?: string } | null;
+  podcast?: { audioUrl?: string; title?: string; eyebrow?: string; subtitle?: string } | null;
   /** Citações em destaque. */
   highlights?: Array<{ text: string }>;
   /** FAQ: pergunta e resposta. */

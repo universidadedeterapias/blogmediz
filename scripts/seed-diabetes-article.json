@@ -13,17 +13,18 @@
       }
     ],
     "video": {
-      "embedUrl": "https://www.youtube.com/embed/9eq88NqYlJ4?rel=0&modestbranding=1",
-      "title": "Diabetes Tipo 1 e origem emocional"
+      "embedUrl": "https://youtu.be/9eq88NqYlJ4",
+      "title": "Vídeo resumo meDIZ"
     },
     "mindmap": {
       "imageUrl": "https://exemplo.com/mapa-mental-diabetes.png",
       "caption": "🧠 Mapa Mental — Conexões Emocionais do Pâncreas"
     },
     "podcast": {
-      "audioUrl": "https://exemplo.com/podcast-diabetes.m4a",
+      "audioUrl": "https://youtu.be/tyr6xVQqP7E",
       "title": "A guerra interna do Diabetes Tipo 1",
-      "eyebrow": "Podcast"
+      "eyebrow": "PODCAST",
+      "subtitle": "O que ninguém te contou sobre a origem emocional dessa condição"
     },
     "highlights": [
       {

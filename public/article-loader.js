@@ -16,12 +16,25 @@
     return { locale: "pt", slug: null };
   }
 
+  /** Remove o “casco” estático do index.html depois de preencher o artigo pela API. */
+  function clearArticleShellLoading() {
+    document.documentElement.classList.remove("article-shell-loading");
+    var o = document.querySelector(".article-loading-overlay");
+    if (o) o.remove();
+  }
+
   function normalizeYoutubeEmbedUrl(url) {
     if (!url || typeof url !== "string") return "";
     var u = url.trim();
     var m = u.match(/(?:youtube\.com|m\.youtube\.com)\/(?:embed\/|watch\?v=)([a-zA-Z0-9_-]{11})/);
     if (!m) m = u.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
     return m ? "https://www.youtube.com/embed/" + m[1] + "?rel=0&modestbranding=1" : "";
+  }
+
+  function podcastWaveformSpans() {
+    var parts = [];
+    for (var i = 0; i < 12; i++) parts.push("<span></span>");
+    return parts.join("");
   }
 
   function buildContentHtml(content) {
@@ -60,31 +73,31 @@
       html.push("<figure class=\"mindmap\">" + img + cap + "</figure>");
     }
     if (content.podcast && content.podcast.audioUrl) {
-      var podcastUrl = (content.podcast.audioUrl || "").trim();
+      var p = content.podcast;
+      var podcastUrl = (p.audioUrl || "").trim();
       var youtubeEmbed = normalizeYoutubeEmbedUrl(podcastUrl);
-      if (youtubeEmbed) {
-        var podTitle = content.podcast.title ? " title=\"" + escapeHtml(content.podcast.title) + "\"" : "";
-        html.push(
-          "<div class=\"podcast-block podcast-youtube\" id=\"podcast-block\">" +
-            (content.podcast.eyebrow ? "<div class=\"eyebrow\">" + escapeHtml(content.podcast.eyebrow) + "</div>" : "") +
-            (content.podcast.title ? "<div class=\"title\" style=\"margin-bottom:12px;\">" + escapeHtml(content.podcast.title) + "</div>" : "") +
-            "<div class=\"vid-wrap\"><iframe src=\"" + escapeHtml(youtubeEmbed) + "\" allowfullscreen" + podTitle + "></iframe></div>" +
-          "</div>"
-        );
-      } else {
-        const eyebrow = content.podcast.eyebrow ? "<div class=\"eyebrow\">" + escapeHtml(content.podcast.eyebrow) + "</div>" : "";
-        const title = content.podcast.title ? "<div class=\"title\">" + escapeHtml(content.podcast.title) + "</div>" : "";
-        html.push(
-          "<div class=\"podcast-block\" id=\"podcast-block\">" +
-            "<button class=\"podcast-play-big\" id=\"playBtn\" aria-label=\"Ouvir episódio\"></button>" +
-            "<div class=\"podcast-info\">" + eyebrow + title + "</div>" +
-            "<audio id=\"podcastAudio\" src=\"" + escapeHtml(podcastUrl) + "\"></audio>" +
-            "<div class=\"podcast-waveform\" id=\"waveform\"></div>" +
-            "<div class=\"podcast-prog\" id=\"progBar\"><div class=\"fill\" id=\"progFill\"></div></div>" +
-            "<div class=\"podcast-duration\" id=\"durLabel\">Clique para ouvir</div>" +
-            "</div>"
-        );
-      }
+      var eyebrowRaw = p.eyebrow && String(p.eyebrow).trim() ? String(p.eyebrow).trim() : "PODCAST";
+      var titleHtml = p.title ? "<div class=\"title\">" + escapeHtml(p.title) + "</div>" : "";
+      var subHtml = p.subtitle && String(p.subtitle).trim()
+        ? "<div class=\"subtitle\">" + escapeHtml(String(p.subtitle).trim()) + "</div>"
+        : "";
+      var ytAttr = youtubeEmbed
+        ? " data-podcast-youtube=\"" + escapeHtml(youtubeEmbed) + "\""
+        : "";
+      html.push(
+        "<div class=\"podcast-block\" id=\"podcast-block\"" + ytAttr + ">" +
+          "<button type=\"button\" class=\"podcast-play-big\" id=\"playBtn\" aria-label=\"Ouvir episódio\"></button>" +
+          "<div class=\"podcast-info\">" +
+          "<div class=\"eyebrow\">" + escapeHtml(eyebrowRaw) + "</div>" +
+          titleHtml +
+          subHtml +
+          "<div class=\"podcast-waveform paused\" id=\"waveform\">" + podcastWaveformSpans() + "</div>" +
+          "<div class=\"podcast-prog\" id=\"progBar\"><div class=\"fill\" id=\"progFill\"></div></div>" +
+          "<div class=\"podcast-duration\" id=\"durLabel\">Clique para ouvir</div>" +
+          "</div>" +
+          "</div>" +
+          (youtubeEmbed ? "" : "<audio id=\"podcastAudio\" preload=\"metadata\" playsinline src=\"" + escapeHtml(podcastUrl) + "\"></audio>")
+      );
     }
     (content.highlights || []).forEach(function (h) {
       var txt = typeof h === "string" ? h : (h && typeof h === "object" ? (h.text || h.content || h.value || "") : "");
@@ -125,7 +138,7 @@
     }
     html.push(
       "<a class=\"prod-card\" href=\"https://universidadedeterapias.com.br/guia-impresso\" target=\"_blank\" rel=\"noopener\">" +
-        "<div class=\"prod-card-img\"><div class=\"prod-card-placeholder\" style=\"width:100%;height:100%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:40px;\">📘</div></div>" +
+        "<div class=\"prod-card-img\"><img src=\"/images/prod-livro-o-corpo-diz.png\" alt=\"O Corpo Diz — Prof. Paulo Barbosa\" width=\"600\" height=\"600\" loading=\"lazy\" decoding=\"async\"></div>" +
         "<div class=\"prod-card-body\">" +
           "<div class=\"prod-card-eyebrow\">Para ir mais fundo</div>" +
           "<div class=\"prod-card-title\">O Corpo Diz — Prof. Paulo Barbosa</div>" +
@@ -136,7 +149,7 @@
     );
     html.push(
       "<a class=\"prod-card pdf\" href=\"https://universidadedeterapias.com.br\" target=\"_blank\" rel=\"noopener\">" +
-        "<div class=\"prod-card-img\"><div class=\"prod-card-placeholder\" style=\"width:100%;height:100%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:40px;\">📄</div></div>" +
+        "<div class=\"prod-card-img\"><img src=\"/images/prod-pdf-sentido-biologico.png\" alt=\"PDF Sentido Biológico — Diabetes Tipo 1\" width=\"600\" height=\"600\" loading=\"lazy\" decoding=\"async\"></div>" +
         "<div class=\"prod-card-body\">" +
           "<div class=\"prod-card-eyebrow\">Guia completo</div>" +
           "<div class=\"prod-card-title\">PDF Sentido Biológico — Diabetes Tipo 1</div>" +
@@ -229,20 +242,53 @@
     return div.innerHTML;
   }
 
+  function estimateReadMinutes(article) {
+    var c = article.content || {};
+    var html = String(c.mainContent || c.body || "");
+    var text = html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+    if (!text) return null;
+    var words = text.split(/\s/).filter(Boolean).length;
+    return Math.max(1, Math.ceil(words / 200));
+  }
+
+  var DEFAULT_AUTHOR = "Prof. Paulo Barbosa";
+  var DEFAULT_CATEGORY = "Sistema Imune e Geral";
+
+  function displayCategory(tag) {
+    var t = (tag || "").trim();
+    if (!t || t.toLowerCase() === "artigo") return DEFAULT_CATEGORY;
+    return t;
+  }
+
+  function displayAuthor(author) {
+    var a = (author || "").trim();
+    return a || DEFAULT_AUTHOR;
+  }
+
   function setMeta(article) {
     if (!article) return;
-    const cat = document.querySelector(".cat-tag");
-    if (cat) cat.textContent = article.categoryTag || "";
-    const titleEl = document.querySelector(".art-title");
-    if (titleEl) titleEl.innerHTML = (article.title || "").replace(/\n/g, "<br>");
-    document.title = article.title + " | meDIZ";
-    const meta = document.querySelector(".art-meta");
+    var cat = document.querySelector(".cat-tag");
+    if (cat) {
+      cat.textContent = displayCategory(article.categoryTag);
+      cat.style.display = "";
+    }
+    var titleEl = document.querySelector(".art-title");
+    if (titleEl) {
+      var lines = String(article.title || "").split("\n");
+      titleEl.innerHTML = lines.map(function (line) { return escapeHtml(line); }).join("<br>");
+    }
+    var plainTitle = String(article.title || "meDIZ").replace(/\n/g, " ").trim();
+    document.title = plainTitle + " | meDIZ";
+    var meta = document.querySelector(".art-meta");
     if (meta) {
-      let metaHtml = "";
-      if (article.author) metaHtml += "<span>✍️ " + escapeHtml(article.author) + "</span>";
+      var metaHtml = "";
+      metaHtml += "<span>✍️ " + escapeHtml(displayAuthor(article.author)) + "</span>";
+      var mins = estimateReadMinutes(article);
+      if (mins != null) metaHtml += "<span>⏱ " + mins + " min de leitura</span>";
       if (article.publishedAt) {
-        const d = new Date(article.publishedAt);
-        metaHtml += "<span>📅 " + d.toLocaleDateString("pt-BR") + "</span>";
+        var d = new Date(article.publishedAt);
+        var monthsPt = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        metaHtml += "<span>📅 " + monthsPt[d.getMonth()] + " " + d.getFullYear() + "</span>";
       }
       meta.innerHTML = metaHtml || "<span>meDIZ</span>";
     }
@@ -295,6 +341,104 @@
     tocNav.innerHTML = links.join("");
   }
 
+  /** Player único do print: áudio nativo ou YouTube só em iframe oculto (sem miniatura na página). */
+  function bindPodcastPlayer() {
+    setTimeout(function () {
+      var block = document.getElementById("podcast-block");
+      var playBtn = document.getElementById("playBtn");
+      if (!block || !playBtn) return;
+
+      var wf = document.getElementById("waveform");
+      var fill = document.getElementById("progFill");
+      var dur = document.getElementById("durLabel");
+      var bar = document.getElementById("progBar");
+
+      var yt = block.getAttribute("data-podcast-youtube");
+      if (yt) {
+        var iframeEl = null;
+        function ensureYtFrame() {
+          if (iframeEl) return iframeEl;
+          var holder = document.getElementById("podcast-yt-hidden");
+          if (!holder) {
+            holder = document.createElement("div");
+            holder.id = "podcast-yt-hidden";
+            holder.setAttribute("aria-hidden", "true");
+            holder.style.cssText =
+              "position:fixed;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;opacity:0;pointer-events:none";
+            holder.innerHTML =
+              "<iframe id=\"podcastYtFrame\" title=\"Podcast\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share\" style=\"border:0;width:560px;height:315px\"></iframe>";
+            document.body.appendChild(holder);
+          }
+          iframeEl = document.getElementById("podcastYtFrame");
+          return iframeEl;
+        }
+        var ytPlaying = false;
+        playBtn.addEventListener("click", function () {
+          var fr = ensureYtFrame();
+          if (ytPlaying) {
+            fr.src = "about:blank";
+            ytPlaying = false;
+            playBtn.classList.remove("playing");
+            if (wf) wf.classList.add("paused");
+            if (fill) fill.style.width = "0%";
+            if (dur) dur.textContent = "Clique para ouvir";
+          } else {
+            var sep = yt.indexOf("?") >= 0 ? "&" : "?";
+            fr.src = yt + sep + "autoplay=1";
+            ytPlaying = true;
+            playBtn.classList.add("playing");
+            if (wf) wf.classList.remove("paused");
+            if (dur) dur.textContent = "Reproduzindo…";
+          }
+        });
+        return;
+      }
+
+      var audio = document.getElementById("podcastAudio");
+      if (!audio) return;
+
+      function fmt(s) {
+        var m = Math.floor(s / 60);
+        return m + ":" + String(Math.floor(s % 60)).padStart(2, "0");
+      }
+      var playing = false;
+
+      playBtn.addEventListener("click", function () {
+        if (playing) {
+          audio.pause();
+          playing = false;
+          playBtn.classList.remove("playing");
+          if (wf) wf.classList.add("paused");
+        } else {
+          audio.play();
+          playing = true;
+          playBtn.classList.add("playing");
+          if (wf) wf.classList.remove("paused");
+        }
+      });
+      audio.addEventListener("timeupdate", function () {
+        if (audio.duration && fill) {
+          fill.style.width = (audio.currentTime / audio.duration) * 100 + "%";
+          if (dur) dur.textContent = fmt(audio.currentTime) + " / " + fmt(audio.duration);
+        }
+      });
+      audio.addEventListener("ended", function () {
+        playing = false;
+        playBtn.classList.remove("playing");
+        if (wf) wf.classList.add("paused");
+        if (fill) fill.style.width = "0%";
+        if (dur) dur.textContent = "Clique para ouvir";
+      });
+      if (bar) {
+        bar.addEventListener("click", function (e) {
+          if (!audio.duration) return;
+          var r = bar.getBoundingClientRect();
+          audio.currentTime = ((e.clientX - r.left) / r.width) * audio.duration;
+        });
+      }
+    }, 0);
+  }
+
   function fillLatestArticles(locale) {
     var sb = document.getElementById("sidebar-latest-list");
     if (sb) {
@@ -339,32 +483,13 @@
             console.error("Erro ao renderizar artigo:", e);
             contentEl.innerHTML = "<p style='color:var(--light);'>Erro ao carregar o conteúdo do artigo.</p>";
           }
-          var content = article.content || {};
-          if (content.podcast && content.podcast.audioUrl) {
-            setTimeout(function () {
-              var playBtn = document.getElementById("playBtn");
-              var audio = document.getElementById("podcastAudio");
-              if (playBtn && audio) {
-                playBtn.addEventListener("click", function () {
-                  if (audio.paused) { audio.play(); playBtn.classList.add("playing"); }
-                  else { audio.pause(); playBtn.classList.remove("playing"); }
-                });
-                audio.addEventListener("timeupdate", function () {
-                  var fill = document.getElementById("progFill");
-                  if (fill) fill.style.width = (audio.currentTime / audio.duration * 100) + "%";
-                });
-                audio.addEventListener("durationchange", function () {
-                  var lab = document.getElementById("durLabel");
-                  if (lab) lab.textContent = Math.floor(audio.duration / 60) + " min";
-                });
-              }
-            }, 0);
-          }
+          bindPodcastPlayer();
           document.querySelectorAll(".faq-item").forEach(function (item) {
             var q = item.querySelector(".faq-q");
             if (q) q.addEventListener("click", function () { item.classList.toggle("open"); });
           });
         }
+        clearArticleShellLoading();
       })
       .catch(function (err) {
         console.error("Erro ao carregar artigo:", err);
@@ -390,12 +515,18 @@
             updateLangLinks(locale, newest.slug);
             return loadArticle(locale, newest.slug, contentEl);
           }
+          if (contentEl) {
+            contentEl.innerHTML = "<p style='color:var(--light);'>Nenhum artigo disponível.</p>";
+            buildDynamicToc(contentEl);
+          }
+          clearArticleShellLoading();
         })
         .catch(function () {
           if (contentEl) {
             contentEl.innerHTML = "<p style='color:var(--light);'>Nenhum artigo disponível.</p>";
             buildDynamicToc(contentEl);
           }
+          clearArticleShellLoading();
         });
       return;
     }
@@ -405,6 +536,7 @@
         contentEl.innerHTML = "<p style='color:var(--light);'>Artigo não encontrado.</p>";
         buildDynamicToc(contentEl);
       }
+      clearArticleShellLoading();
     });
   }
 
