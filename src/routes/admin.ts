@@ -95,7 +95,74 @@ adminRouter.post("/login", async (req: Request, res: Response): Promise<void> =>
 
 adminRouter.use(adminAuth);
 
-/** POST /api/admin/upload — upload de imagem para mapa mental. Retorna { url }. */
+const MINDMAP_IMAGE_MIME = /^image\/(jpeg|png|gif|webp)$/i;
+
+function mindmapImageExt(contentType: string, filename: string): string {
+  const ct = contentType.split(";")[0]?.trim().toLowerCase() ?? "";
+  const byCt: Record<string, string> = {
+    "image/jpeg": "jpg",
+    "image/png": "png",
+    "image/gif": "gif",
+    "image/webp": "webp",
+  };
+  const fromCt = byCt[ct];
+  if (fromCt) return fromCt;
+  const tail = (filename.split(".").pop() || "jpg").toLowerCase();
+  if (tail === "jpeg" || tail === "jpg") return "jpg";
+  if (tail === "png" || tail === "gif" || tail === "webp") return tail;
+  return "jpg";
+}
+
+/**
+ * POST /api/admin/upload-sign — devolve URL assinada para o browser enviar o ficheiro direto ao Storage.
+ * Evita o limite ~4.5MB do body nas Serverless Functions da Vercel (multipart para /upload estoura antes).
+ */
+adminRouter.post("/upload-sign", async (req: Request, res: Response): Promise<void> => {
+  if (!env.supabaseUrl || !env.supabaseServiceKey) {
+    res.status(503).json({ error: "Upload não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_KEY no .env" });
+    return;
+  }
+  const body = req.body ?? {};
+  const contentType = typeof body.contentType === "string" ? body.contentType : "";
+  const filename = typeof body.filename === "string" ? body.filename : "image.jpg";
+  if (!MINDMAP_IMAGE_MIME.test(contentType.split(";")[0]?.trim() ?? "")) {
+    res.status(400).json({ error: "Tipo inválido. Use JPEG, PNG, GIF ou WebP." });
+    return;
+  }
+  const ext = mindmapImageExt(contentType, filename);
+  const name = `mindmap-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  try {
+    const supabase = createClient(env.supabaseUrl, env.supabaseServiceKey);
+    const { data, error } = await supabase.storage.from("mindmaps").createSignedUploadUrl(name);
+    if (error) {
+      if (error.message?.includes("Bucket not found") || error.message?.includes("does not exist")) {
+        res.status(503).json({
+          error: "Bucket 'mindmaps' não existe. Crie em Supabase → Storage → New bucket → nome 'mindmaps', público.",
+        });
+        return;
+      }
+      console.error("Supabase createSignedUploadUrl:", error);
+      res.status(500).json({ error: "Falha ao preparar upload: " + (error.message || "erro desconhecido") });
+      return;
+    }
+    if (!data?.signedUrl || !data.token) {
+      res.status(500).json({ error: "Resposta inválida do Storage ao criar URL de upload." });
+      return;
+    }
+    const { data: urlData } = supabase.storage.from("mindmaps").getPublicUrl(name);
+    res.json({
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: data.path,
+      publicUrl: urlData.publicUrl,
+    });
+  } catch (e) {
+    console.error("upload-sign error:", e);
+    res.status(500).json({ error: "Erro ao preparar upload" });
+  }
+});
+
+/** POST /api/admin/upload — upload de imagem para mapa mental. Retorna { url }. No Vercel, o body costuma falhar acima de ~4.5MB; use /upload-sign no painel. */
 adminRouter.post("/upload", upload.single("file"), async (req: Request, res: Response): Promise<void> => {
   if (!env.supabaseUrl || !env.supabaseServiceKey) {
     res.status(503).json({ error: "Upload não configurado. Defina SUPABASE_URL e SUPABASE_SERVICE_KEY no .env" });
@@ -222,11 +289,17 @@ adminRouter.patch(
 
     const body = req.body as Record<string, unknown>;
     const video = body.video;
-    const mindmap = body.mindmap as Record<string, string> | undefined;
+    const mindmap = body.mindmap as Record<string, unknown> | undefined;
     const podcast = body.podcast;
 
     const hasVideo = video !== null && typeof video === "object" && !Array.isArray(video);
-    const hasMindmap = mindmap && typeof mindmap === "object" && (mindmap.imageUrl !== undefined || mindmap.caption !== undefined);
+    const hasMindmap =
+      mindmap &&
+      typeof mindmap === "object" &&
+      !Array.isArray(mindmap) &&
+      (["imageUrl", "embedUrl", "caption"] as const).some((k) =>
+        Object.prototype.hasOwnProperty.call(mindmap, k),
+      );
     const hasPodcast = podcast !== null && typeof podcast === "object" && !Array.isArray(podcast);
     const hasVisibility = typeof body.isPublished === "boolean";
 
@@ -253,13 +326,26 @@ adminRouter.patch(
         nextContent = applyVideoPodcastPatchToContent(nextContent, hasVideo ? video : undefined, hasPodcast ? podcast : undefined);
       }
       if (hasMindmap && mindmap) {
-        nextContent.mindmap = {
-          ...(typeof nextContent.mindmap === "object" && nextContent.mindmap !== null
-            ? (nextContent.mindmap as Record<string, unknown>)
-            : {}),
-          ...(mindmap.imageUrl !== undefined && { imageUrl: String(mindmap.imageUrl) }),
-          ...(mindmap.caption !== undefined && { caption: String(mindmap.caption) }),
-        };
+        const cur =
+          typeof nextContent.mindmap === "object" && nextContent.mindmap !== null
+            ? { ...(nextContent.mindmap as Record<string, unknown>) }
+            : {};
+        for (const k of ["imageUrl", "embedUrl", "caption"] as const) {
+          if (!Object.prototype.hasOwnProperty.call(mindmap, k)) continue;
+          const s = String(mindmap[k] ?? "").trim();
+          if (s === "") delete cur[k];
+          else if (k === "embedUrl") {
+            try {
+              const u = new URL(s);
+              if (u.protocol === "http:" || u.protocol === "https:") cur[k] = s;
+              else delete cur[k];
+            } catch {
+              delete cur[k];
+            }
+          } else cur[k] = s;
+        }
+        if (Object.keys(cur).length > 0) nextContent.mindmap = cur;
+        else delete nextContent.mindmap;
       }
 
       const patchData: { content?: object; isPublished?: boolean } = {};

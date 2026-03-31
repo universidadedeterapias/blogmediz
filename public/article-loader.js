@@ -63,14 +63,21 @@
         );
       }
     }
-    if (content.mindmap && (content.mindmap.imageUrl || content.mindmap.caption)) {
-      const img = content.mindmap.imageUrl
-        ? "<img src=\"" + escapeHtml(content.mindmap.imageUrl) + "\" alt=\"\">"
-        : "";
-      const cap = content.mindmap.caption
-        ? "<figcaption>" + escapeHtml(content.mindmap.caption) + "</figcaption>"
-        : "";
-      html.push("<figure class=\"mindmap\">" + img + cap + "</figure>");
+    var mm = content.mindmap;
+    if (mm && (mm.embedUrl || mm.imageUrl || mm.caption)) {
+      var embed = (mm.embedUrl && String(mm.embedUrl).trim()) || "";
+      var imgUrl = (mm.imageUrl && String(mm.imageUrl).trim()) || "";
+      var inner = "";
+      if (embed) {
+        inner =
+          "<iframe class=\"mindmap-iframe\" src=\"" +
+          escapeHtml(embed) +
+          "\" title=\"Mapa mental\" loading=\"lazy\" referrerpolicy=\"no-referrer-when-downgrade\" allowfullscreen></iframe>";
+      } else if (imgUrl) {
+        inner = "<img src=\"" + escapeHtml(imgUrl) + "\" alt=\"\">";
+      }
+      var cap = mm.caption ? "<figcaption>" + escapeHtml(String(mm.caption)) + "</figcaption>" : "";
+      if (inner || cap) html.push("<figure class=\"mindmap\">" + inner + cap + "</figure>");
     }
     if (content.podcast && content.podcast.audioUrl) {
       var p = content.podcast;

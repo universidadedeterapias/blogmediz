@@ -667,12 +667,15 @@
           </div>
           <div class="section">
             <strong>Mapa mental</strong>
+            <p class="hint" style="margin:0 0 10px;">Para <strong>imagem</strong> (PNG/JPG etc.), use o campo abaixo ou o upload (envio direto ao Supabase; até ~20MB, dentro do limite do teu projeto). Para uma <strong>página</strong> (mapa num site, ferramenta externa), use «URL para incorporar» — o link vira um iframe no artigo (alguns sites bloqueiam incorporação).</p>
             <label for="mindmapImageUrl">URL da imagem ou envie um arquivo</label>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-              <input type="url" id="mindmapImageUrl" placeholder="https://... ou use o upload abaixo" style="flex:1;min-width:200px;" />
+              <input type="url" id="mindmapImageUrl" placeholder="https://...imagem.png ou upload abaixo" style="flex:1;min-width:200px;" />
               <input type="file" id="mindmapFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="font-size:12px;" />
               <span id="mindmapUploadStatus" style="font-size:12px;color:var(--light);"></span>
             </div>
+            <label for="mindmapEmbedUrl" style="margin-top:12px;display:block;">URL para incorporar (página do mapa — opcional)</label>
+            <input type="url" id="mindmapEmbedUrl" placeholder="https://..." style="max-width:100%;" />
             <label for="mindmapCaption">Legenda (opcional)</label>
             <input type="text" id="mindmapCaption" placeholder="Legenda" />
           </div>
@@ -778,6 +781,7 @@
     const videoThumbnailUrl = document.getElementById("videoThumbnailUrl");
     const videoTitle = document.getElementById("videoTitle");
     const mindmapImageUrl = document.getElementById("mindmapImageUrl");
+    const mindmapEmbedUrl = document.getElementById("mindmapEmbedUrl");
     const mindmapFileInput = document.getElementById("mindmapFileInput");
     const mindmapUploadStatus = document.getElementById("mindmapUploadStatus");
     const mindmapCaption = document.getElementById("mindmapCaption");
@@ -809,25 +813,47 @@
     mindmapFileInput.addEventListener("change", async (e) => {
       const file = e.target.files?.[0];
       if (!file) return;
+      const maxBytes = 20 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        mindmapUploadStatus.textContent = "Arquivo muito grande (máx. 20MB).";
+        mindmapUploadStatus.style.color = "var(--error, #c62828)";
+        mindmapFileInput.value = "";
+        return;
+      }
+      if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type || "")) {
+        mindmapUploadStatus.textContent = "Use JPEG, PNG, GIF ou WebP.";
+        mindmapUploadStatus.style.color = "var(--error, #c62828)";
+        mindmapFileInput.value = "";
+        return;
+      }
       mindmapUploadStatus.textContent = "Enviando…";
       mindmapUploadStatus.style.color = "";
-      const fd = new FormData();
-      fd.append("file", file);
       try {
-        const r = await api("/upload", {
+        const r1 = await api("/upload-sign", {
           method: "POST",
-          headers: {},
-          body: fd,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ contentType: file.type || "image/jpeg", filename: file.name }),
         });
-        const data = await r.json().catch(() => ({}));
-        if (r.ok && data.url) {
-          mindmapImageUrl.value = data.url;
-          mindmapUploadStatus.textContent = "Upload concluído.";
-          mindmapUploadStatus.style.color = "var(--success, #2e7d32)";
-        } else {
-          mindmapUploadStatus.textContent = data.error || "Falha no upload.";
+        const meta = await r1.json().catch(() => ({}));
+        if (!r1.ok || !meta.signedUrl || !meta.publicUrl) {
+          mindmapUploadStatus.textContent = meta.error || "Falha ao preparar upload.";
           mindmapUploadStatus.style.color = "var(--error, #c62828)";
+          mindmapFileInput.value = "";
+          return;
         }
+        const fd = new FormData();
+        fd.append("cacheControl", "31536000");
+        fd.append("", file);
+        const r2 = await fetch(meta.signedUrl, { method: "PUT", body: fd, headers: { "x-upsert": "false" } });
+        if (!r2.ok) {
+          mindmapUploadStatus.textContent = "Falha ao enviar para o Supabase (" + r2.status + ").";
+          mindmapUploadStatus.style.color = "var(--error, #c62828)";
+          mindmapFileInput.value = "";
+          return;
+        }
+        mindmapImageUrl.value = meta.publicUrl;
+        mindmapUploadStatus.textContent = "Upload concluído.";
+        mindmapUploadStatus.style.color = "var(--success, #2e7d32)";
       } catch (err) {
         mindmapUploadStatus.textContent = "Erro de conexão.";
         mindmapUploadStatus.style.color = "var(--error, #c62828)";
@@ -907,6 +933,7 @@
       videoThumbnailUrl.value = v.thumbnailUrl || "";
       videoTitle.value = v.title || "";
       mindmapImageUrl.value = m.imageUrl || "";
+      mindmapEmbedUrl.value = m.embedUrl || "";
       mindmapCaption.value = m.caption || "";
       podcastAudioUrl.value = p.audioUrl || "";
       podcastTitle.value = p.title || "";
@@ -929,8 +956,9 @@
           title: videoTitle.value.trim(),
         },
         mindmap: {
-          imageUrl: mindmapImageUrl.value.trim() || undefined,
-          caption: mindmapCaption.value.trim() || undefined,
+          imageUrl: mindmapImageUrl.value.trim(),
+          embedUrl: mindmapEmbedUrl.value.trim(),
+          caption: mindmapCaption.value.trim(),
         },
         podcast: {
           audioUrl: podcastAudioUrl.value.trim(),
