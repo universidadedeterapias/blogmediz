@@ -65,6 +65,56 @@ articlesRouter.post("/", bearerAuth, async (req: Request, res: Response): Promis
   }
 });
 
+/**
+ * GET /api/articles/:locale/search?q= — lista artigos publicados cujo título, categoria ou slug contém a query.
+ * Deve ficar antes de /:locale/:slug para não confundir "search" com slug.
+ */
+articlesRouter.get("/:locale/search", async (req: Request, res: Response): Promise<void> => {
+  const locale = Array.isArray(req.params.locale) ? req.params.locale[0] : req.params.locale;
+  if (!locale || !isLocale(locale)) {
+    res.status(400).json({ error: "Invalid locale" });
+    return;
+  }
+
+  const raw = typeof req.query.q === "string" ? req.query.q.trim() : "";
+  if (raw.length < 2) {
+    res.status(400).json({ error: "Use pelo menos 2 caracteres na busca (parâmetro q)." });
+    return;
+  }
+
+  const q = raw;
+
+  try {
+    const articles = await prisma.article.findMany({
+      where: {
+        locale,
+        isPublished: true,
+        OR: [
+          { title: { contains: q, mode: "insensitive" } },
+          { categoryTag: { contains: q, mode: "insensitive" } },
+          { slug: { contains: q, mode: "insensitive" } },
+        ],
+      },
+      orderBy: [
+        { publishedAt: { sort: "desc", nulls: "last" } },
+        { createdAt: "desc" },
+      ],
+      take: 50,
+      select: {
+        slug: true,
+        title: true,
+        categoryTag: true,
+        publishedAt: true,
+      },
+    });
+    res.setHeader("Cache-Control", "public, max-age=60, stale-while-revalidate=120");
+    res.json(articles);
+  } catch (e) {
+    console.error("Article search error:", e);
+    res.status(500).json({ error: "Failed to search articles" });
+  }
+});
+
 /** GET /api/articles/:locale/:slug — retorna um artigo (público). */
 articlesRouter.get("/:locale/:slug", async (req: Request, res: Response): Promise<void> => {
   const locale = Array.isArray(req.params.locale) ? req.params.locale[0] : req.params.locale;

@@ -6,9 +6,6 @@ import { getWebhookSessionId } from "../lib/webhook-session.js";
 
 export const alineRouter = Router();
 
-const ALINE_MAX_SEARCHES = 3;
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 function getOrCreateSessionId(req: Request, res: Response): string {
   return getWebhookSessionId(req, res);
 }
@@ -42,45 +39,6 @@ alineRouter.post("/", async (req: Request, res: Response): Promise<void> => {
       });
     }
 
-    const isEmail = EMAIL_REGEX.test(message);
-
-    // Se já atingiu o limite e enviou um email válido: salva lead e reseta sessão
-    if (session.messageCount >= ALINE_MAX_SEARCHES && isEmail) {
-      await prisma.alineLead.create({
-        data: {
-          email: message.trim().toLowerCase(),
-          messageCount: ALINE_MAX_SEARCHES,
-        },
-      });
-      await prisma.alineSession.update({
-        where: { sessionId },
-        data: { messageCount: 0 },
-      });
-      res.status(200).json({
-        reply:
-          "Obrigado! Seu email foi registrado. Em breve entraremos em contato para o mapeamento completo.",
-        limitReached: false,
-        emailSaved: true,
-      });
-      return;
-    }
-
-    // Se já atingiu o limite: não chama n8n, pede email
-    if (session.messageCount >= ALINE_MAX_SEARCHES) {
-      res.status(200).json({
-        reply:
-          "Você atingiu o limite de 3 buscas. Para continuar o mapeamento completo da sua história, deixe seu email no campo abaixo e envie.",
-        limitReached: true,
-      });
-      return;
-    }
-
-    // Incrementa contador antes de chamar o webhook
-    await prisma.alineSession.update({
-      where: { sessionId },
-      data: { messageCount: session.messageCount + 1 },
-    });
-
     const webhookUrl = env.alineWebhookUrl?.trim();
     if (!webhookUrl) {
       console.warn("[Aline] ALINE_WEBHOOK_URL não configurada");
@@ -89,6 +47,11 @@ alineRouter.post("/", async (req: Request, res: Response): Promise<void> => {
       });
       return;
     }
+
+    await prisma.alineSession.update({
+      where: { sessionId },
+      data: { messageCount: session.messageCount + 1 },
+    });
 
     const payload = {
       message,
@@ -101,7 +64,7 @@ alineRouter.post("/", async (req: Request, res: Response): Promise<void> => {
     console.log(
       "[Aline] Enviando para webhook:",
       message.substring(0, 50) + "...",
-      `(busca ${session.messageCount + 1}/${ALINE_MAX_SEARCHES})`
+      `(mensagem ${session.messageCount + 1})`
     );
     const forward = await fetch(webhookUrl, {
       method: "POST",
@@ -118,7 +81,6 @@ alineRouter.post("/", async (req: Request, res: Response): Promise<void> => {
         forward.status,
         raw?.substring(0, 200)
       );
-      // Reverte o incremento em caso de erro
       await prisma.alineSession.update({
         where: { sessionId },
         data: { messageCount: session.messageCount },
@@ -147,15 +109,12 @@ alineRouter.post("/", async (req: Request, res: Response): Promise<void> => {
         reply = raw;
       }
     } else {
-      // Texto puro (text/plain ou outro) — usa o corpo inteiro como resposta
       reply = raw;
     }
 
-    const remaining = ALINE_MAX_SEARCHES - (session.messageCount + 1);
     res.status(200).json({
       reply: reply || "Desculpe, não consegui processar. Tente de novo.",
-      remainingSearches: Math.max(0, remaining),
-      limitReached: remaining <= 0,
+      limitReached: false,
     });
   } catch (e) {
     const err = e as NodeJS.ErrnoException;

@@ -680,7 +680,7 @@ adminRouter.post("/aline-reset", async (_req: Request, res: Response): Promise<v
     const result = await prisma.alineSession.deleteMany({});
     res.status(200).json({
       ok: true,
-      message: `${result.count} sessão(ões) resetada(s). Todos podem fazer 3 buscas novamente.`,
+      message: `${result.count} sessão(ões) resetada(s).`,
     });
   } catch (e) {
     console.error("Admin aline-reset error:", e);

@@ -6,7 +6,7 @@ export const alineLeadRouter = Router();
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-/** POST /api/aline-lead — salva cliente/lead da Aline no banco (após limite de 3 buscas). */
+/** POST /api/aline-lead — salva cliente/lead da Aline no banco (ex.: formulário ou n8n). */
 alineLeadRouter.post("/", async (req: Request, res: Response): Promise<void> => {
   const email =
     typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";

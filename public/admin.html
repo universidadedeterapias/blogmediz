@@ -697,7 +697,7 @@
           <p class="hint">Ferramentas para teste e manutenção do chat da Aline.</p>
           <div class="section">
             <strong>Resetar buscas</strong>
-            <p class="hint" style="margin-top:4px;">Zera o contador de buscas de todas as sessões. Útil para testes — após o reset, todos os usuários poderão fazer 3 buscas novamente.</p>
+            <p class="hint" style="margin-top:4px;">Zera o contador de mensagens de todas as sessões (estatística). Útil para testes ou recomeçar métricas.</p>
             <button type="button" class="primary btn-outline" id="alineResetBtn">Resetar todas as sessões da Aline</button>
             <p id="alineResetStatus" style="margin-top:8px;"></p>
           </div>
@@ -1642,7 +1642,7 @@
         status.className = "error";
         return;
       }
-      status.textContent = data.message || "Todas as sessões foram resetadas. Todos podem fazer 3 buscas novamente.";
+      status.textContent = data.message || "Todas as sessões foram resetadas.";
       status.className = "success";
     });
 

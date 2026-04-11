@@ -894,26 +894,21 @@ document.addEventListener('keydown',function(e){if(e.target.id==='alineInput'&&e
     return ['pt','es','en'].includes(first)?first:'pt';
   }
   function doSearch(){
-    const q=(input.value||'').trim().toLowerCase();
+    const q=(input.value||'').trim();
     if(q.length<2)return;
     const locale=getLocale();
-    fetch('/api/articles/'+locale+'?limit=100')
-      .then(r=>r.json())
+    const url='/api/articles/'+encodeURIComponent(locale)+'/search?q='+encodeURIComponent(q);
+    fetch(url)
+      .then(r=>{if(!r.ok)throw new Error('search failed');return r.json();})
       .then(list=>{
-        if(!Array.isArray(list)||list.length===0){alert('Nenhum artigo encontrado ainda.');return;}
-        const matches=list.filter(a=>{
-          const t=(a.title||'').toLowerCase();
-          const c=(a.categoryTag||'').toLowerCase();
-          const s=(a.slug||'').toLowerCase();
-          return t.includes(q)||c.includes(q)||s.includes(q);
-        });
-        if(matches.length===0){alert('Nenhum artigo encontrado para "'+q+'".');return;}
-        // Por simplicidade, vai para o primeiro resultado.
-        window.location.href='/'+locale+'/'+matches[0].slug;
+        if(!Array.isArray(list)||list.length===0){alert('Nenhum artigo encontrado para "'+q+'".');return;}
+        window.location.href='/'+locale+'/'+list[0].slug;
       })
       .catch(()=>{alert('Não foi possível buscar artigos agora.');});
   }
   input.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();});
+  var searchIcon=document.querySelector('.search-icon');
+  if(searchIcon)searchIcon.addEventListener('click',function(){doSearch();});
 })();
 
 // ── NEWSLETTER: envia email para POST /api/newsletter (webhook n8n)
