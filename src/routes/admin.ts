@@ -14,7 +14,10 @@ import {
   slugifyInput,
 } from "../lib/import-document.js";
 import { applyVideoPodcastPatchToContent } from "../lib/media-defaults.js";
-import { mergeContentPreservingManualMedia } from "../lib/article-content-merge.js";
+import {
+  mergeContentPreservingManualMedia,
+  normalizeArticleContent,
+} from "../lib/article-content-merge.js";
 
 export const adminRouter = Router();
 
@@ -320,7 +323,7 @@ adminRouter.patch(
         return;
       }
 
-      let nextContent = { ...((article.content as Record<string, unknown>) || {}) };
+      let nextContent = normalizeArticleContent(article.content);
 
       if (hasVideo || hasPodcast) {
         nextContent = applyVideoPodcastPatchToContent(nextContent, hasVideo ? video : undefined, hasPodcast ? podcast : undefined);
@@ -392,8 +395,8 @@ adminRouter.put(
         return;
       }
 
-      const currentContent = (article.content as Record<string, unknown>) || {};
-      const nextContent = { ...currentContent, ...content };
+      const currentContent = normalizeArticleContent(article.content);
+      const nextContent = mergeContentPreservingManualMedia(currentContent, content);
 
       const updateData: Record<string, unknown> = { content: nextContent };
       if (body.title !== undefined) updateData.title = String(body.title);

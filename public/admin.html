@@ -980,7 +980,24 @@
         saveStatus.className = "error";
         return;
       }
-      saveStatus.textContent = "Salvo.";
+      const updated = await r.json();
+      const uc = updated.content || {};
+      const uv = uc.video || {};
+      const um = uc.mindmap || {};
+      const up = uc.podcast || {};
+      videoEmbedUrl.value = uv.embedUrl || "";
+      videoThumbnailUrl.value = uv.thumbnailUrl || "";
+      videoTitle.value = uv.title || "";
+      mindmapImageUrl.value = um.imageUrl || "";
+      mindmapEmbedUrl.value = um.embedUrl || "";
+      mindmapCaption.value = um.caption || "";
+      podcastAudioUrl.value = up.audioUrl || "";
+      podcastTitle.value = up.title || "";
+      podcastEyebrow.value = up.eyebrow || "";
+      document.getElementById("mediaIsPublished").checked = updated.isPublished !== false;
+      saveStatus.textContent = up.audioUrl
+        ? "Salvo. Podcast gravado para este artigo."
+        : "Salvo. (Podcast vazio no banco — o site usará o link padrão.)";
       saveStatus.className = "success";
     });
 
